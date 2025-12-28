@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/Common/">
+    <File Path=".editorconfig" />
+    <File Path="global.json" />
+  </Folder>
+  <Project Path="src/BlueWombMod/BlueWombMod.csproj" />
+</Solution>

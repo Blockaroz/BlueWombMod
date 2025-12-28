@@ -1,2 +1,38 @@
-# This file will automatically update with entries for new content after a build and reload.
+Biomes: {
+	DeadWombBiome: {
+		DisplayName: Dead Womb
+		TownNPCDialogueName: the Dead Womb
+	}
+}
 
+Items: {
+	DeadTissueBlockItem: {
+		DisplayName: Dead Tissue Block
+		Tooltip: ""
+	}
+
+	DeadTissueWallItem: {
+		DisplayName: Dead Tissue Wall
+		Tooltip: ""
+	}
+
+	DeadTissueWallUnsafeItem: {
+		DisplayName: Wriggling Dead Tissue Wall
+		Tooltip: ""
+	}
+
+	SurgicalKnife: {
+		DisplayName: Surgical Knife
+		Tooltip: ""
+	}
+
+	DeadTissueBlockUnsafeItem: {
+		DisplayName: Wriggling Dead Tissue Block
+		Tooltip: ""
+	}
+}
+
+Projectiles: {
+	DeadTissueBlockGrowth.DisplayName: Regenerating Dead Tissue
+	DeadTissueWallGrowth.DisplayName: Regenerating Dead Tissue
+}
