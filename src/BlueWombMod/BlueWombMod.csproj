@@ -1,0 +1,16 @@
+<Project Sdk="Tomat.Terraria.Modloader.Sdk">
+	<PropertyGroup>
+		<TmlBuildIncludeSourceGenerators>false</TmlBuildIncludeSourceGenerators>
+		<TmlBuildUseDefaultModImpl>false</TmlBuildUseDefaultModImpl>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Publicize Include="ReLogic" IncludeCompilerGeneratedMembers="false" IncludeVirtualMembers="false" />
+		<Publicize Include="FNA" IncludeCompilerGeneratedMembers="false" IncludeVirtualMembers="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Content\DeadWomb\HushBoss\" />
+	</ItemGroup>
+
+</Project>
