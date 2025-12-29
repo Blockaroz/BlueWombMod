@@ -53,15 +53,12 @@ public sealed class DeadTissueBlockUnsafe : ModTile
 
 	public override bool CanDrop(int i, int j)
     {
-        return false;
-    }
-
-    public override void KillTile(int i, int j, ref bool fail, ref bool effectOnly, ref bool noItem)
-    {
-        if (Main.netMode != NetmodeID.MultiplayerClient && !effectOnly && !fail)
+        if (Main.netMode != NetmodeID.MultiplayerClient)
         {
             Projectile.NewProjectileDirect(Entity.GetSource_NaturalSpawn(), new Vector2(i * 16 + 8, j * 16 + 8), Vector2.Zero, ModContent.ProjectileType<DeadTissueBlockGrowth>(), 0, 0);
         }
+
+        return false;
     }
 }
 
@@ -84,7 +81,7 @@ public sealed class DeadTissueBlockGrowth : ModProjectile
     public override void OnSpawn(IEntitySource source)
     {
         Variant = Main.rand.Next(3);
-        visualOffset = Main.rand.NextVector2Circular(5, 5);
+        visualOffset = Main.rand.NextVector2Circular(12, 12);
         Projectile.rotation = Main.rand.NextFloat(-0.5f, 0.5f);
         Projectile.timeLeft = Main.rand.Next(300, 350);
     }
@@ -116,9 +113,9 @@ public sealed class DeadTissueBlockGrowth : ModProjectile
             Projectile.timeLeft -= 2;
         }
 
-        Projectile.scale = Utils.GetLerpValue(90, 0, Projectile.timeLeft, true);
+        Projectile.scale = Utils.GetLerpValue(90, 0, Projectile.timeLeft, true) * (1 + Utils.GetLerpValue(5, 30, Projectile.timeLeft, true) * 0.5f);
 
-        Vector2 offset = Main.rand.NextVector2Circular(40, 40);
+        Vector2 offset = Main.rand.NextVector2Circular(24, 24);
         if (seedUp)
         {
             offset += Vector2.UnitY * 16f;
@@ -135,14 +132,21 @@ public sealed class DeadTissueBlockGrowth : ModProjectile
         {
             offset += Vector2.UnitX * -16f;
         }
-        Dust dust = Dust.NewDustPerfect(Projectile.Center + visualOffset + offset, ModContent.DustType<DeadTissueDust>(), -offset * 0.1f, Scale: Projectile.scale * 1.11f);
+
+        if (Projectile.timeLeft < 60)
+        {
+            visualOffset *= 0.93f;
+        }
+
+        Dust dust = Dust.NewDustPerfect(Projectile.Center + visualOffset + offset, ModContent.DustType<DeadTissueDust>(), -offset * 0.05f, Scale: Projectile.scale * 0.8f);
         dust.noGravity = true;
+        dust.fadeIn = Projectile.scale;
 
         Projectile.soundDelay--;
         if (Projectile.soundDelay < 0)
         {
-            Projectile.soundDelay = 11;
-            SoundEngine.PlaySound(SoundID.NPCHit9 with { MaxInstances = 0, Pitch = Projectile.scale, Volume = Projectile.scale * 0.1f }, Projectile.Center);
+            Projectile.soundDelay = 15;
+            SoundEngine.PlaySound(SoundID.NPCHit9 with { MaxInstances = 0, Pitch = Projectile.scale - 1f, Volume = Projectile.scale * 0.15f }, Projectile.Center);
         }
     }
 
@@ -160,7 +164,7 @@ public sealed class DeadTissueBlockGrowth : ModProjectile
             return;
         }
 
-        WorldGen.KillTile(tilePosition.X, tilePosition.Y, noItem: true);
+        WorldGen.KillTile(tilePosition.X, tilePosition.Y);
         WorldGen.PlaceTile(tilePosition.X, tilePosition.Y, tileType, mute: true, forced: true);
     }
 

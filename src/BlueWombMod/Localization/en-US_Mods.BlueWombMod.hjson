@@ -21,13 +21,23 @@ Items: {
 		Tooltip: ""
 	}
 
-	SurgicalKnife: {
-		DisplayName: Surgical Knife
+	DeadTissueBlockUnsafeItem: {
+		DisplayName: Wriggling Dead Tissue Block
 		Tooltip: ""
 	}
 
-	DeadTissueBlockUnsafeItem: {
-		DisplayName: Wriggling Dead Tissue Block
+	SurgicalKnife: {
+		DisplayName: Surgical Knife
+		Tooltip: Prevents the regrowth of tissue and allows its collection
+	}
+
+	HushMask: {
+		DisplayName: Hush Mask
+		Tooltip: ""
+	}
+
+	SkinScissors: {
+		DisplayName: Skin Scissors
 		Tooltip: ""
 	}
 }
@@ -36,3 +46,5 @@ Projectiles: {
 	DeadTissueBlockGrowth.DisplayName: Regenerating Dead Tissue
 	DeadTissueWallGrowth.DisplayName: Regenerating Dead Tissue
 }
+
+NPCs.LittleHush.DisplayName: Little Hush

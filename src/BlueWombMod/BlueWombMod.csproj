@@ -9,4 +9,8 @@
 		<Publicize Include="FNA" IncludeCompilerGeneratedMembers="false" IncludeVirtualMembers="false" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Content\DeadWomb\HushBoss\Minions\" />
+	</ItemGroup>
+
 </Project>

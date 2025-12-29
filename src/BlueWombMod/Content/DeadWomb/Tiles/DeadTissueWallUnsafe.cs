@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Terraria;
+using Terraria.Audio;
 using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.ID;
@@ -30,12 +31,12 @@ public sealed class DeadTissueWallUnsafeItem : ModItem
 
 public sealed class DeadTissueWallUnsafe : ModWall
 {
-	public override string Texture => ModContent.GetInstance<DeadTissueWall>().Texture;
+    public override string Texture => ModContent.GetInstance<DeadTissueWall>().Texture;
 
     public override void SetStaticDefaults()
-	{
-		Main.wallHouse[Type] = false;
-		Main.wallBlend[Type] = ModContent.WallType<DeadTissueWall>();
+    {
+        Main.wallHouse[Type] = false;
+        Main.wallBlend[Type] = ModContent.WallType<DeadTissueWall>();
 
         HitSound = null;
         DustType = ModContent.DustType<DeadTissueDust>();
@@ -44,18 +45,14 @@ public sealed class DeadTissueWallUnsafe : ModWall
 
     public override bool Drop(int i, int j, ref int type)
     {
-        return false;
-    }
-
-    public override void KillWall(int i, int j, ref bool fail)
-    {
-        if (Main.netMode != NetmodeID.MultiplayerClient && !fail)
+        if (Main.netMode != NetmodeID.MultiplayerClient)
         {
             Projectile.NewProjectileDirect(Entity.GetSource_NaturalSpawn(), new Vector2(i * 16 + 8, j * 16 + 8), Vector2.Zero, ModContent.ProjectileType<DeadTissueWallGrowth>(), 0, 0);
         }
+
+        return false;
     }
 }
-
 public sealed class DeadTissueWallGrowth : ModProjectile
 {
     public override void SetDefaults()
@@ -65,7 +62,8 @@ public sealed class DeadTissueWallGrowth : ModProjectile
 
         Projectile.tileCollide = false;
         Projectile.penetrate = -1;
-        Projectile.timeLeft = 240;
+        Projectile.timeLeft = 120;
+        Projectile.hide = true;
     }
 
     public int Variant { get => (int)Projectile.localAI[0]; set => Projectile.localAI[0] = value; }
@@ -77,9 +75,9 @@ public sealed class DeadTissueWallGrowth : ModProjectile
     public override void OnSpawn(IEntitySource source)
     {
         Variant = Main.rand.Next(3);
-        visualOffset = Main.rand.NextVector2Circular(5, 5);
+        visualOffset = Main.rand.NextVector2Circular(12, 12);
         Projectile.rotation = Main.rand.NextFloat(-0.5f, 0.5f);
-        Projectile.timeLeft = Main.rand.Next(120, 180);
+        Projectile.timeLeft = Main.rand.Next(100, 140);
     }
 
     public override void AI()
@@ -109,7 +107,7 @@ public sealed class DeadTissueWallGrowth : ModProjectile
             Projectile.timeLeft -= 2;
         }
 
-        Projectile.scale = Utils.GetLerpValue(90, 0, Projectile.timeLeft, true);
+        Projectile.scale = Utils.GetLerpValue(90, 0, Projectile.timeLeft, true) * (1 + Utils.GetLerpValue(5, 30, Projectile.timeLeft, true) * 0.5f);
 
         Vector2 offset = Main.rand.NextVector2Circular(30, 30);
         if (seedUp)
@@ -129,8 +127,23 @@ public sealed class DeadTissueWallGrowth : ModProjectile
             offset += Vector2.UnitX * 16f;
         }
 
-        Dust dust = Dust.NewDustPerfect(Projectile.Center + visualOffset + offset, ModContent.DustType<DeadTissueDust>(), -offset * 0.1f, Scale: Projectile.scale);
-        dust.noGravity = true;
+        if (Projectile.timeLeft < 60)
+        {
+            visualOffset *= 0.93f;
+        }
+
+        if (Main.rand.NextBool())
+        {
+            Dust dust = Dust.NewDustPerfect(Projectile.Center + visualOffset + offset, ModContent.DustType<DeadTissueDust>(), -offset * 0.05f, Scale: Projectile.scale * 0.75f);
+            dust.noGravity = true;
+        }
+
+        Projectile.soundDelay--;
+        if (Projectile.soundDelay < 0)
+        {
+            Projectile.soundDelay = 11;
+            SoundEngine.PlaySound(SoundID.NPCHit13 with { MaxInstances = 0, Pitch = Projectile.scale, Volume = Projectile.scale * 0.05f }, Projectile.Center);
+        }
     }
 
     public override void OnKill(int timeLeft)
@@ -147,9 +160,13 @@ public sealed class DeadTissueWallGrowth : ModProjectile
             return;
         }
 
-        WorldGen.KillWall(tilePosition.X, tilePosition.Y, fail: true);
-        Main.tile[tilePosition.X, tilePosition.Y].WallType = WallID.None;
+        WorldGen.KillWall(tilePosition.X, tilePosition.Y);
         WorldGen.PlaceWall(tilePosition.X, tilePosition.Y, tileType, mute: true);
+    }
+
+    public override void DrawBehind(int index, List<int> behindNPCsAndTiles, List<int> behindNPCs, List<int> behindProjectiles, List<int> overPlayers, List<int> overWiresUI)
+    {
+        behindNPCsAndTiles.Add(index);
     }
 
     public override bool PreDraw(ref Color lightColor)

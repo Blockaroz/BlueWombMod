@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using BlueWombMod.Content.DeadWomb.Tiles;
+using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,7 +13,7 @@ using Terraria.WorldBuilding;
 
 namespace BlueWombMod.Content.DeadWomb;
 
-public sealed class DeadWombWorld : ModSystem
+public sealed class DeadWombGeneration : ModSystem
 {
     public override void ModifyWorldGenTasks(List<GenPass> tasks, ref double totalWeight)
     {
@@ -68,24 +69,50 @@ public sealed class DeadWombGenBiome : MicroBiome
 
     public override bool Place(Point origin, StructureMap structures)
     {
-        var description = new DeadWombDescription(Center: origin, Radius: 50, []);
+        var description = new DeadWombDescription(Center: origin, Radius: 48, []);
 
-        structures.AddProtectedStructure(new Rectangle(0, 0, 0, 0));
+        PlaceMainRoom(description);
+
+        structures.AddProtectedStructure(new Rectangle(description.Center.X - description.Radius, description.Center.Y - description.Radius, description.Radius * 2, description.Radius * 2));
 
         return true;
     }
 
     private void PlaceMainRoom(DeadWombDescription description)
     {
-        for (int j = -description.Radius; j < description.Radius; j++)
+        ushort tileType = (ushort)ModContent.TileType<DeadTissueBlockUnsafe>();
+        ushort wallType = (ushort)ModContent.WallType<DeadTissueWallUnsafe>();
+
+        const int padding = 16;
+        for (int j = -description.Radius - padding; j < description.Radius + padding; j++)
         {
-            for (int i = -description.Radius; i < description.Radius; i++)
+            for (int i = -description.Radius - padding; i < description.Radius + padding; i++)
             {
                 double distance = Math.Sqrt(i * i + j * j);
 
                 int tileX = description.Center.X + i;
-                int tileY = description.Center.X + j;
+                int tileY = description.Center.Y + j;
+                if (!WorldGen.InWorld(tileX, tileY, 2))
+                    continue;
+
                 Tile tile = Main.tile[tileX, tileY];
+
+                if (distance < description.Radius + WorldGen.genRand.Next(3) - 3)
+                {
+                    if (distance > description.Radius - 14.5)
+                    {
+                        tile.ResetToType(tileType);
+                    }
+                    else
+                    {
+                        tile.ClearEverything();
+                    }
+
+                    if (distance < description.Radius - 4 - WorldGen.genRand.Next(2))
+                    {
+                        tile.WallType = wallType;
+                    }
+                }
             }
         }
     }
