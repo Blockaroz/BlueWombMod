@@ -37,6 +37,7 @@ public sealed class DeadTissueBlockUnsafe : ModTile
 
     public override void SetStaticDefaults()
     {
+        TileID.Sets.CanBeClearedDuringGeneration[Type] = false;
         TileID.Sets.Suffocate[Type] = true;
 
         Main.tileBrick[Type] = true;
@@ -48,7 +49,7 @@ public sealed class DeadTissueBlockUnsafe : ModTile
         MineResist = 2.5f;
         HitSound = null;
 		DustType = ModContent.DustType<DeadTissueDust>();
-        AddMapEntry(new Color(81, 115, 173));
+        AddMapEntry(new Color(63, 81, 114));
 	}
 
 	public override bool CanDrop(int i, int j)
@@ -83,7 +84,7 @@ public sealed class DeadTissueBlockGrowth : ModProjectile
         Variant = Main.rand.Next(3);
         visualOffset = Main.rand.NextVector2Circular(12, 12);
         Projectile.rotation = Main.rand.NextFloat(-0.5f, 0.5f);
-        Projectile.timeLeft = Main.rand.Next(300, 350);
+        Projectile.timeLeft = Main.rand.Next(400, 450);
     }
 
     public override void AI()
@@ -110,7 +111,7 @@ public sealed class DeadTissueBlockGrowth : ModProjectile
 
         if (seedUp || seedDown || seedLeft || seedRight)
         {
-            Projectile.timeLeft -= 2;
+            Projectile.timeLeft -= 3;
         }
 
         Projectile.scale = Utils.GetLerpValue(90, 0, Projectile.timeLeft, true) * (1 + Utils.GetLerpValue(5, 30, Projectile.timeLeft, true) * 0.5f);

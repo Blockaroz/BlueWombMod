@@ -1,4 +1,5 @@
-﻿using BlueWombMod.Content.DeadWomb.Tiles;
+﻿using BlueWombMod.Content.DeadWomb.HushBoss;
+using BlueWombMod.Content.DeadWomb.Tiles;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
@@ -6,15 +7,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Terraria;
+using Terraria.ID;
+using Terraria.Map;
 using Terraria.ModLoader;
 
 namespace BlueWombMod.Content.DeadWomb;
 
-public sealed class DeadWombBiome : ModBiome
+public sealed class BlueWombBiome : ModBiome
 {
     public override Color? BackgroundColor => Color.Black;
 
 	public override SceneEffectPriority Priority => SceneEffectPriority.BiomeHigh;
+
+    public override int Music => MusicID.OtherworldlyUGCrimson;
 
 	public override bool IsBiomeActive(Player player)
     {

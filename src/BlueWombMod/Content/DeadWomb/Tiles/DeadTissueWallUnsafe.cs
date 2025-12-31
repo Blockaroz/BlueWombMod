@@ -35,12 +35,14 @@ public sealed class DeadTissueWallUnsafe : ModWall
 
     public override void SetStaticDefaults()
     {
+        WallID.Sets.CannotBeReplacedByWallSpread[Type] = true;
+
         Main.wallHouse[Type] = false;
         Main.wallBlend[Type] = ModContent.WallType<DeadTissueWall>();
 
         HitSound = null;
         DustType = ModContent.DustType<DeadTissueDust>();
-        AddMapEntry(new Color(44, 63, 104));
+        AddMapEntry(new Color(51, 66, 94));
     }
 
     public override bool Drop(int i, int j, ref int type)
@@ -53,6 +55,7 @@ public sealed class DeadTissueWallUnsafe : ModWall
         return false;
     }
 }
+
 public sealed class DeadTissueWallGrowth : ModProjectile
 {
     public override void SetDefaults()

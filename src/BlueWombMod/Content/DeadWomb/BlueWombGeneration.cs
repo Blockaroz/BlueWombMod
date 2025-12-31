@@ -1,4 +1,5 @@
-﻿using BlueWombMod.Content.DeadWomb.Tiles;
+﻿using BlueWombMod.Content.DeadWomb.HushBoss;
+using BlueWombMod.Content.DeadWomb.Tiles;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
@@ -13,7 +14,7 @@ using Terraria.WorldBuilding;
 
 namespace BlueWombMod.Content.DeadWomb;
 
-public sealed class DeadWombGeneration : ModSystem
+public sealed class BlueWombGeneration : ModSystem
 {
     public override void ModifyWorldGenTasks(List<GenPass> tasks, ref double totalWeight)
     {
@@ -33,7 +34,7 @@ public sealed class DeadWombGeneration : ModSystem
         progress.Message = "Ripping apart Mom's Heart";
 
         int tries = 50;
-        var biome = new DeadWombGenBiome();
+        var biome = new BlueWombGenBiome();
         while (tries > 0)
         {
             if (biome.Place(new Point(x, y), GenVars.structures))
@@ -55,21 +56,21 @@ public sealed class GenCommand : ModCommand
         int x = (int)(Main.MouseWorld.X / 16);
         int y = (int)(Main.MouseWorld.Y / 16);
 
-        var biome = new DeadWombGenBiome();
+        var biome = new BlueWombGenBiome();
 
         biome.Place(new Point(x, y), new StructureMap());
     }
 }
 
-public sealed class DeadWombGenBiome : MicroBiome
+public sealed class BlueWombGenBiome : MicroBiome
 {
-    public record struct DeadWombDescription(Point Center, int Radius, List<LootCellDescription> Loot);
+    public record struct WombDescription(Point Center, int Radius, List<WombLootCellDescription> Loot);
 
-    public record struct LootCellDescription(Point Center, int Radius);
+    public record struct WombLootCellDescription(Point Center, int Radius);
 
     public override bool Place(Point origin, StructureMap structures)
     {
-        var description = new DeadWombDescription(Center: origin, Radius: 48, []);
+        var description = new WombDescription(Center: origin, Radius: 48, []);
 
         PlaceMainRoom(description);
 
@@ -78,7 +79,7 @@ public sealed class DeadWombGenBiome : MicroBiome
         return true;
     }
 
-    private void PlaceMainRoom(DeadWombDescription description)
+    private void PlaceMainRoom(WombDescription description)
     {
         ushort tileType = (ushort)ModContent.TileType<DeadTissueBlockUnsafe>();
         ushort wallType = (ushort)ModContent.WallType<DeadTissueWallUnsafe>();
@@ -115,5 +116,7 @@ public sealed class DeadWombGenBiome : MicroBiome
                 }
             }
         }
+
+        HushSystem.WombPosition = description.Center;
     }
 }

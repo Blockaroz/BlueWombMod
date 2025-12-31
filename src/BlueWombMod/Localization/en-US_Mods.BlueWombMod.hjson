@@ -3,6 +3,11 @@ Biomes: {
 		DisplayName: Dead Womb
 		TownNPCDialogueName: the Dead Womb
 	}
+
+	BlueWombBiome: {
+		DisplayName: Blue Womb Biome
+		TownNPCDialogueName: the Blue Womb Biome
+	}
 }
 
 Items: {
@@ -40,11 +45,20 @@ Items: {
 		DisplayName: Skin Scissors
 		Tooltip: ""
 	}
+
+	SuspiciousFaceItem: {
+		DisplayName: Suspicious Face
+		Tooltip: ""
+	}
 }
 
 Projectiles: {
 	DeadTissueBlockGrowth.DisplayName: Regenerating Dead Tissue
 	DeadTissueWallGrowth.DisplayName: Regenerating Dead Tissue
+	HolySkyCrack.DisplayName: Holy Sky Crack
 }
 
-NPCs.LittleHush.DisplayName: Little Hush
+NPCs: {
+	LittleHush.DisplayName: ???
+	SuspiciousChild.DisplayName: Suspicious Child
+}

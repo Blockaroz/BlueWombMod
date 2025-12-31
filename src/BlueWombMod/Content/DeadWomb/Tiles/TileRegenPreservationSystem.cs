@@ -10,7 +10,7 @@ using Terraria.ModLoader.IO;
 
 namespace BlueWombMod.Content.DeadWomb.Tiles;
 
-public sealed class TileRegenerationSystem : ModSystem
+public sealed class TileRegenPreservationSystem : ModSystem
 {
     public override void Load()
     {

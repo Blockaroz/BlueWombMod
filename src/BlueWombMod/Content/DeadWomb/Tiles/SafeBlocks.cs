@@ -31,7 +31,7 @@ public sealed class DeadTissueBlock : ModTile
         MineResist = 2.5f;
         HitSound = null;
         DustType = ModContent.DustType<DeadTissueDust>();
-        AddMapEntry(new Color(81, 115, 173));
+        AddMapEntry(new Color(63, 81, 114));
     }
 }
 
@@ -62,6 +62,6 @@ public sealed class DeadTissueWall : ModWall
     {
         HitSound = null;
         DustType = ModContent.DustType<DeadTissueDust>();
-        AddMapEntry(new Color(44, 63, 104));
+        AddMapEntry(new Color(51, 66, 94));
     }
 }
