@@ -44,12 +44,7 @@ public sealed partial class LittleHush : ModNPC
         Music = 0;
     }
 
-    public override void OnSpawn(IEntitySource source)
-    {
-        SetHome(HushSystem.HomePosition);
-
-        NPC.dontTakeDamage = true;
-    }
+    public override bool? CanFallThroughPlatforms() => true;
 
     public override bool? DrawHealthBar(byte hbPosition, ref float scale, ref Vector2 position)
     {
@@ -63,6 +58,13 @@ public sealed partial class LittleHush : ModNPC
     public ref float Time => ref NPC.ai[2];
 
     public ref float MiscTime => ref NPC.localAI[0];
+
+    public override void OnSpawn(IEntitySource source)
+    {
+        SetHome(HushSystem.HomePosition);
+
+        NPC.dontTakeDamage = true;
+    }
 
     public override void AI()
     {
@@ -128,11 +130,9 @@ public sealed partial class LittleHush : ModNPC
         drawColor = GetAlpha(drawColor) ?? drawColor;
 
         Texture2D fade = Assets.Textures.GlowBig.Value;
-
-        spriteBatch.Draw(fade, NPC.Center + DrawOffset - screenPos, fade.Frame(), Color.Black * 0.25f * FightModeStrength, NPC.rotation, fade.Size() / 2, NPC.scale * 0.25f, 0, 0);
+        spriteBatch.Draw(fade, NPC.Center + DrawOffset - screenPos, fade.Frame(), Color.Black * 0.25f, NPC.rotation, fade.Size() / 2, NPC.scale * 0.25f, 0, 0);
 
         Texture2D texture = TextureAssets.Npc[Type].Value;
-
         Rectangle frame = texture.Frame(3, 4, NPC.direction + 1, AnimationFrame);
 
         spriteBatch.Draw(texture, NPC.Center + DrawOffset - screenPos, frame, drawColor, NPC.rotation, frame.Size() / 2, NPC.scale * DrawScale, 0, 0);

@@ -137,8 +137,10 @@ public sealed class SuspiciousChild : ModNPC
     {
         drawColor = GetAlpha(drawColor) ?? drawColor;
 
-        Texture2D texture = TextureAssets.Npc[Type].Value;
+        Texture2D fade = Assets.Textures.GlowBig.Value;
+        spriteBatch.Draw(fade, NPC.Center + DrawOffset - screenPos, fade.Frame(), Color.Black * 0.25f, NPC.rotation, fade.Size() / 2, NPC.scale * 0.25f, 0, 0);
 
+        Texture2D texture = TextureAssets.Npc[Type].Value;
         Rectangle frame = texture.Frame(3, 1, NPC.direction + 1, 0);
 
         spriteBatch.Draw(texture, NPC.Center + DrawOffset - screenPos, frame, drawColor, NPC.rotation, frame.Size() / 2, NPC.scale, 0, 0);

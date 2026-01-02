@@ -110,6 +110,7 @@ public sealed partial class LittleHush : ModNPC
         if (Attack == (int)BossAttack.Idle)
         {
             PrepForAttackSelection();
+
             Attack = (int)BossAttack.TravelAndSpit;
         }
         else

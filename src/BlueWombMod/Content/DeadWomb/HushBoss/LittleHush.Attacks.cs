@@ -41,6 +41,12 @@ public sealed partial class LittleHush : ModNPC
         }
     }
 
+    public void EndAttack()
+    {
+        Time = 0;
+        Attack = (int)BossAttack.Idle;
+    }
+
     public void Attack_TravelAndSpit()
     {
         const int ChargeTime = 33;
@@ -72,11 +78,11 @@ public sealed partial class LittleHush : ModNPC
             else
             {
                 int offDir = NPC.Center.X > target.Center.X ? -1 : 1;
-                offset = new Vector2(offDir * 300, 0).RotatedBy(Main.rand.Next(-1, 2) / 3f * MathHelper.Pi);
+                offset = new Vector2(offDir * 300, 0).RotatedBy(Main.rand.NextBool().ToDirectionInt() * MathHelper.PiOver4);
             }
 
+            Dust.QuickDust(wombCenter + offset, Color.CornflowerBlue);
             SetHome(wombCenter + offset);
-            Dust.QuickDustLine(wombCenter, HomePosition, 100, Color.Red);
         }
 
         if (Time < ChargeTime)
@@ -89,9 +95,11 @@ public sealed partial class LittleHush : ModNPC
         }
         if (Time == ChargeTime)
         {
-            NPC.velocity -= NPC.DirectionTo(target.Center).SafeNormalize(Vector2.Zero) * 7f;
+            NPC.velocity *= 0.5f;
+            NPC.velocity -= NPC.DirectionTo(target.Center).SafeNormalize(Vector2.Zero) * 5f;
 
-            SoundEngine.PlaySound(SoundID.NPCDeath19, NPC.Center);
+            SoundEngine.PlaySound(SoundID.NPCDeath13 with { Volume = 0.7f }, NPC.Center);
+
             if (Main.netMode != NetmodeID.MultiplayerClient)
             {
                 float distanceToTarget = NPC.Distance(target.Center);
@@ -107,10 +115,13 @@ public sealed partial class LittleHush : ModNPC
         }
         if (Time >= ChargeTime)
         {
-            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(1.3f, 0.7f), new Vector2(0.8f, 1.4f), Utils.GetLerpValue(ChargeTime, ChargeTime + 6, Time, true)), MathF.Sqrt(Utils.GetLerpValue(ChargeTime + 30, ChargeTime + 10, Time, true)));
+            Vector2 initSquash = Vector2.Lerp(new Vector2(1.3f, 0.7f), new Vector2(0.8f, 1.4f), Utils.GetLerpValue(ChargeTime, ChargeTime + 6, Time, true));
+            DrawScale = Vector2.Lerp(Vector2.One, initSquash, Utils.GetLerpValue(ChargeTime + 20, ChargeTime + 5, Time, true));
 
-            NPC.velocity *= 0.98f - 0.1f * Utils.GetLerpValue(ChargeTime, TotalTime, Time, true);
-            NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.4f * Utils.GetLerpValue(0, 300, NPC.Distance(HomePosition));
+            float beginMove = Utils.GetLerpValue(ChargeTime + 10, TotalTime, Time, true);
+            NPC.velocity *= 0.97f - 0.05f * beginMove;
+            NPC.velocity += NPC.DirectionFrom(target.Center).SafeNormalize(Vector2.Zero) * 0.2f;
+            NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * Utils.GetLerpValue(-20, 300, NPC.Distance(HomePosition)) * beginMove;
 
             if (Time < ChargeTime + 30)
             {
@@ -118,12 +129,12 @@ public sealed partial class LittleHush : ModNPC
             }
         }
 
-        if (Time > TotalTime)
-        {
-            Attack = (int)BossAttack.Idle;
-        }
-
         Time++;
+
+        if (Time >= TotalTime)
+        {
+            EndAttack();
+        }
     }
 
     public void Attack_TearSpiral()
@@ -177,7 +188,7 @@ public sealed partial class LittleHush : ModNPC
 
         if (Time >= TotalTime)
         {
-            Attack = (int)BossAttack.Idle;
+            EndAttack();
         }
     }
 }

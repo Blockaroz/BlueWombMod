@@ -38,6 +38,7 @@ public sealed class BlueWombBiome : ModBiome
     }
 }
 
+[Autoload(Side = ModSide.Client)]
 public static class BlueWombBiomeExtension
 {
     extension(Player player)
@@ -57,6 +58,11 @@ public sealed class BlueWombDarknessSystem : ModSystem
     {
         orig(self, x, y, out outputColor);
 
+        if (!HushSystem.WombInWorld)
+        {
+            return;
+        }
+
         if (!WorldGen.SolidOrSlopedTile(x, y))
         {
             float i = x - HushSystem.WombPosition.X;
@@ -72,14 +78,27 @@ public sealed class BlueWombDarknessSystem : ModSystem
     {
         if (Main.LocalPlayer.ZoneBlueWomb)
         {
-            lightFade += 0.02f;
+            lightFade += 0.025f;
         }
         else
         {
-            lightFade -= 0.05f;
+            lightFade -= 0.075f;
         }
+
         lightFade = Math.Clamp(lightFade, 0f, 1f);
 
-        scale *= 1.01f - lightFade * 0.1f * (1f + MathF.Sin(Main.GlobalTimeWrappedHourly) * 0.2f);
+        if (lightFade > 0f)
+        {
+            scale *= 1f - lightFade * 0.133f * (1f + MathF.Sin(Main.GlobalTimeWrappedHourly) * 0.2f);
+        }
+    }
+
+    public override void ModifySunLightColor(ref Color tileColor, ref Color backgroundColor)
+    {
+        if (lightFade > 0f)
+        {
+            tileColor = Color.Lerp(tileColor, new Color(30, 33, 40), lightFade * 0.5f);
+            backgroundColor = Color.Lerp(backgroundColor, new Color(30, 33, 40), lightFade);
+        }
     }
 }

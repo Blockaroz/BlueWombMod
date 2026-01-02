@@ -81,13 +81,13 @@ public sealed class HolyWaterTear : ModProjectile
             Projectile.scale += 0.2f;
         }
 
-        float scale = Utils.GetLerpValue(1, 6, MiscTime, true);
+        float scale = Utils.GetLerpValue(0, 8 * Projectile.scale, Time, true);
 
         Texture2D glow = Assets.Textures.GlowBig.Value;
         Main.EntitySpriteDraw(glow, Projectile.Center - Main.screenPosition, glow.Frame(), Color.White with { A = 0 } * 0.2f, Projectile.rotation, glow.Size() / 2, Projectile.scale * scale * 0.15f, 0, 0);
 
         Rectangle frame = texture.Frame(2, 2, small ? 1 : 0, Projectile.frame);
-        Main.EntitySpriteDraw(texture, Projectile.Center - Main.screenPosition, frame, Color.White, Projectile.rotation, frame.Size() / 2, Projectile.scale * scale, 0, 0);
+        Main.EntitySpriteDraw(texture, Projectile.Center - Main.screenPosition, frame, lightColor * 1.1f, Projectile.rotation, frame.Size() / 2, Projectile.scale * scale, 0, 0);
 
         float flareScale = Projectile.scale * scale * Utils.GetLerpValue(300, 150, Projectile.Distance(Main.LocalPlayer.Center), true);
         flareScale *= MathF.Sin(Main.GlobalTimeWrappedHourly * 40) * 0.2f + 1f;
