@@ -46,7 +46,7 @@ public sealed class DeadTissueBlockUnsafe : ModTile
         Main.tileSolid[Type] = true;
         Main.tileBlockLight[Type] = true;
 
-        MineResist = 2.5f;
+        MineResist = 1.5f;
         HitSound = null;
 		DustType = ModContent.DustType<DeadTissueDust>();
         AddMapEntry(new Color(63, 81, 114));
@@ -84,7 +84,7 @@ public sealed class DeadTissueBlockGrowth : ModProjectile
         Variant = Main.rand.Next(3);
         visualOffset = Main.rand.NextVector2Circular(12, 12);
         Projectile.rotation = Main.rand.NextFloat(-0.5f, 0.5f);
-        Projectile.timeLeft = Main.rand.Next(400, 450);
+        Projectile.timeLeft = Main.rand.Next(500, 600);
     }
 
     public override void AI()

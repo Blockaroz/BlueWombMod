@@ -28,13 +28,13 @@ public sealed partial class LittleHush : ModNPC
 
     public override void SetDefaults()
     {
-        NPC.width = 30;
-        NPC.height = 38;
+        NPC.width = 34;
+        NPC.height = 40;
 
         NPC.boss = true;
         NPC.lifeMax = 6000;
         NPC.defense = 30;
-        NPC.knockBackResist = 0;
+        NPC.knockBackResist = 0f;
 
         NPC.noTileCollide = false;
         NPC.noGravity = true;
@@ -46,9 +46,7 @@ public sealed partial class LittleHush : ModNPC
 
     public override void OnSpawn(IEntitySource source)
     {
-        HushSystem.SetHome(NPC.Center);
-        NPC.homeTileX = HushSystem.HomeTile.X;
-        NPC.homeTileY = HushSystem.HomeTile.Y;
+        SetHome(HushSystem.HomePosition);
 
         NPC.dontTakeDamage = true;
     }
@@ -64,9 +62,12 @@ public sealed partial class LittleHush : ModNPC
     public ref float Attack => ref NPC.ai[1];
     public ref float Time => ref NPC.ai[2];
 
+    public ref float MiscTime => ref NPC.localAI[0];
+
     public override void AI()
     {
-        NPC.direction = 0;
+        DrawScale = Vector2.One;
+        DrawOffset = Vector2.Zero;
 
         switch (State)
         {
@@ -93,6 +94,11 @@ public sealed partial class LittleHush : ModNPC
                 Phase_Scared();
                 break;
         }
+
+        NPC.scale = 1f + 0.5f * FightModeStrength;
+        Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3());
+
+        MiscTime++;
     }
 
     public override void ModifyHoverBoundingBox(ref Rectangle boundingBox)
@@ -105,28 +111,39 @@ public sealed partial class LittleHush : ModNPC
         return drawColor;
     }
 
-    public static Asset<Texture2D> WingsTexture { get; private set; }
-
-    public override void Load()
-    {
-        WingsTexture = ModContent.Request<Texture2D>(Texture + "Wings");
-    }
+    public static LazyAsset<Texture2D> WingsTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/DeadWomb/HushBoss/LittleHushWings");
 
     public int AnimationFrame { get; private set; }
 
     private Vector2 drawOffset;
     public ref Vector2 DrawOffset => ref drawOffset;
 
+    private Vector2 drawScale;
+    public ref Vector2 DrawScale => ref drawScale;
+
+    public float FightModeStrength { get; set; }
+
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
         drawColor = GetAlpha(drawColor) ?? drawColor;
+
+        Texture2D fade = Assets.Textures.GlowBig.Value;
+
+        spriteBatch.Draw(fade, NPC.Center + DrawOffset - screenPos, fade.Frame(), Color.Black * 0.25f * FightModeStrength, NPC.rotation, fade.Size() / 2, NPC.scale * 0.25f, 0, 0);
 
         Texture2D texture = TextureAssets.Npc[Type].Value;
 
         Rectangle frame = texture.Frame(3, 4, NPC.direction + 1, AnimationFrame);
 
-        spriteBatch.Draw(texture, NPC.Center + DrawOffset - screenPos, frame, drawColor, NPC.rotation, frame.Size() / 2, NPC.scale, 0, 0);
+        spriteBatch.Draw(texture, NPC.Center + DrawOffset - screenPos, frame, drawColor, NPC.rotation, frame.Size() / 2, NPC.scale * DrawScale, 0, 0);
 
+        // Debug
+        /*
+        StringBuilder text = new StringBuilder();
+        text.AppendLine($"{(BossState)State}");
+        text.AppendLine($"{(BossAttack)Attack}");
+        Utils.DrawBorderString(spriteBatch, text.ToString(), NPC.Center - new Vector2(0, 20) * DrawScale - screenPos, Color.White, 1f, 0.5f, 1f);
+        */
         return false;
     }
 }

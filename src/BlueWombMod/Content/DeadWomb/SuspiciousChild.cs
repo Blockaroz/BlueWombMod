@@ -6,6 +6,7 @@ using System;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.GameContent;
+using Terraria.GameContent.Events;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -27,11 +28,10 @@ public sealed class SuspiciousChild : ModNPC
 
         NPC.lifeMax = 500;
         NPC.defense = 5;
-        NPC.takenDamageMultiplier = 0.5f;
 
         NPC.noGravity = true;
         NPC.noTileCollide = false;
-        NPC.knockBackResist = 0.4f;
+        NPC.knockBackResist = 0.2f;
     }
 
     public ref float Time => ref NPC.ai[0];
@@ -52,11 +52,6 @@ public sealed class SuspiciousChild : ModNPC
 
         DrawOffset.X = MathF.Sin(Time / 6f * MathHelper.TwoPi);
 
-        if (Time > 240)
-        {
-            Time = 0;
-        }
-
         NPC.TargetClosest(false);
 
         NPCAimedTarget target = NPC.GetTargetData();
@@ -66,7 +61,19 @@ public sealed class SuspiciousChild : ModNPC
             FaceTargetSpecial();
         }
 
+        if (Time % 15 == 0 && NPC.life < NPC.lifeMax)
+        {
+            NPC.life = Math.Min(NPC.life + 1, NPC.lifeMax);
+        }
+
         Time++;
+
+        if (Time >= 240)
+        {
+            Time = 0;
+        }
+
+        Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3());
     }
 
     public int DistanceToFloor()
@@ -106,16 +113,21 @@ public sealed class SuspiciousChild : ModNPC
     public override bool PreKill()
     {
         NPC.active = false;
+
         if (Main.netMode != NetmodeID.MultiplayerClient)
         {
-            NPC.NewNPCDirect(NPC.GetSpawnSourceForNaturalSpawn(), NPC.Center, ModContent.NPCType<LittleHush>());
+            // SuspiciousChildPlacementSystem.Notify();
+            NPC hushy = NPC.NewNPCDirect(NPC.GetSpawnSourceForNaturalSpawn(), NPC.Bottom, ModContent.NPCType<LittleHush>());
+            hushy.velocity = NPC.velocity;
+            hushy.netUpdate = true;
         }
+
         return false;
     }
 
     public override void ModifyHoverBoundingBox(ref Rectangle boundingBox)
     {
-        boundingBox = Rectangle.Empty;
+        boundingBox = new Rectangle((int)NPC.position.X, (int)NPC.position.Y, NPC.width, NPC.height);
     }
 
     private Vector2 drawOffset;
@@ -127,7 +139,7 @@ public sealed class SuspiciousChild : ModNPC
 
         Texture2D texture = TextureAssets.Npc[Type].Value;
 
-        Rectangle frame = texture.Frame(3, 4, NPC.direction + 1, 1);
+        Rectangle frame = texture.Frame(3, 1, NPC.direction + 1, 0);
 
         spriteBatch.Draw(texture, NPC.Center + DrawOffset - screenPos, frame, drawColor, NPC.rotation, frame.Size() / 2, NPC.scale, 0, 0);
 
@@ -162,7 +174,7 @@ public sealed class SuspiciousChildPlacementSystem : ModSystem
 
         if (HushSystem.ActiveFight() || NPC.AnyNPCs(ModContent.NPCType<SuspiciousChild>()))
         {
-            recheck = 240;
+            recheck = 60;
             return;
         }
 
@@ -180,16 +192,16 @@ public sealed class SuspiciousChildPlacementSystem : ModSystem
         }
     }
 
-    public static void BreakOpen()
+    public static void Notify()
     {
-        delay = 100;
+        delay = 40000;
     }
 
     public static void TryPlacingChild(int x, int y)
     {
         bool playerCannotSee = !WorldGen.PlayerLOS(x, y - 20) && !WorldGen.PlayerLOS(x - 20, y + 10) && !WorldGen.PlayerLOS(x + 20, y + 10);
 
-        if (playerCannotSee)
+        if (true)
         {
             if (WorldGen.SolidOrSlopedTile(x, y))
                 return;

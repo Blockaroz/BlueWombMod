@@ -55,10 +55,12 @@ Items: {
 Projectiles: {
 	DeadTissueBlockGrowth.DisplayName: Regenerating Dead Tissue
 	DeadTissueWallGrowth.DisplayName: Regenerating Dead Tissue
-	HolySkyCrack.DisplayName: Holy Sky Crack
+	HolySkyCrack.DisplayName: Holy Light
+	HolyWaterTear.DisplayName: Holy Water Tear
+	BloodTear.DisplayName: Blood Tear
 }
 
 NPCs: {
 	LittleHush.DisplayName: ???
-	SuspiciousChild.DisplayName: Suspicious Child
+	SuspiciousChild.DisplayName: ???
 }

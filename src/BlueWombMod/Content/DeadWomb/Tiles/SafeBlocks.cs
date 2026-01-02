@@ -28,7 +28,6 @@ public sealed class DeadTissueBlock : ModTile
         Main.tileSolid[Type] = true;
         Main.tileBlockLight[Type] = true;
 
-        MineResist = 2.5f;
         HitSound = null;
         DustType = ModContent.DustType<DeadTissueDust>();
         AddMapEntry(new Color(63, 81, 114));

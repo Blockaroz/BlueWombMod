@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Terraria;
 using Terraria.GameContent.Generation;
+using Terraria.ID;
 using Terraria.IO;
 using Terraria.ModLoader;
 using Terraria.WorldBuilding;
@@ -18,30 +19,42 @@ public sealed class BlueWombGeneration : ModSystem
 {
     public override void ModifyWorldGenTasks(List<GenPass> tasks, ref double totalWeight)
     {
-        int index = tasks.FindIndex(n => n.Name == "Underworld");
+        int index = tasks.FindIndex(n => n.Name == "Hives");
         if (index != -1)
         {
-            tasks.Insert(index + 1, new PassLegacy("Dead Womb", GenerateDeadWomb));
+            tasks.Insert(index + 1, new PassLegacy("Blue Womb", GenerateBlueWomb));
         }
+
+        int smoothIndex = tasks.FindIndex(n => n.Name == "Smooth World");
+        if (smoothIndex != -1)
+        {
+            tasks.Insert(smoothIndex + 1, new PassLegacy("Blue Womb Non Solid", SetWombTilesNonsolid));
+        }
+
+        tasks.Add(new PassLegacy("Blue Womb Solid", SetWombTilesSolid));
     }
 
-    private void GenerateDeadWomb(GenerationProgress progress, GameConfiguration configuration)
+    private void GenerateBlueWomb(GenerationProgress progress, GameConfiguration configuration)
     {
-        int distance = WorldGen.genRand.Next(250, 400);
+        int distance = WorldGen.genRand.Next(350, 500);
         int x = GenVars.dungeonSide > 0 ? distance : Main.maxTilesX - distance;
-        int y = Main.UnderworldLayer - WorldGen.genRand.Next(200, 250);
+        int y = Main.UnderworldLayer - WorldGen.genRand.Next(140, 160);
 
         progress.Message = "Ripping apart Mom's Heart";
+        progress.Value = 1.0;
 
-        int tries = 50;
-        var biome = new BlueWombGenBiome();
-        while (tries > 0)
-        {
-            if (biome.Place(new Point(x, y), GenVars.structures))
-				break;
+        var biome = GenVars.configuration.CreateBiome<BlueWombGenBiome>();
+        biome.Place(new Point(x, y), GenVars.structures);
+    }
 
-			tries--;
-        }
+    private void SetWombTilesNonsolid(GenerationProgress progress, GameConfiguration configuration)
+    {
+        Main.tileSolid[ModContent.TileType<DeadTissueBlockUnsafe>()] = false;
+    }
+
+    private void SetWombTilesSolid(GenerationProgress progress, GameConfiguration configuration)
+    {
+        Main.tileSolid[ModContent.TileType<DeadTissueBlockUnsafe>()] = true;
     }
 }
 
@@ -70,11 +83,12 @@ public sealed class BlueWombGenBiome : MicroBiome
 
     public override bool Place(Point origin, StructureMap structures)
     {
-        var description = new WombDescription(Center: origin, Radius: 48, []);
+        int radius = HushSystem.WOMB_RADIUS;
+        var description = new WombDescription(Center: origin, Radius: radius, []);
 
         PlaceMainRoom(description);
 
-        structures.AddProtectedStructure(new Rectangle(description.Center.X - description.Radius, description.Center.Y - description.Radius, description.Radius * 2, description.Radius * 2));
+        structures.AddProtectedStructure(new Rectangle(description.Center.X - radius, description.Center.Y - radius, radius * 2, radius * 2), 9);
 
         return true;
     }
@@ -84,10 +98,10 @@ public sealed class BlueWombGenBiome : MicroBiome
         ushort tileType = (ushort)ModContent.TileType<DeadTissueBlockUnsafe>();
         ushort wallType = (ushort)ModContent.WallType<DeadTissueWallUnsafe>();
 
-        const int padding = 16;
-        for (int j = -description.Radius - padding; j < description.Radius + padding; j++)
+        const int dirtPadding = 40;
+        for (int j = -description.Radius - dirtPadding; j < description.Radius + dirtPadding; j++)
         {
-            for (int i = -description.Radius - padding; i < description.Radius + padding; i++)
+            for (int i = -description.Radius - dirtPadding; i < description.Radius + dirtPadding; i++)
             {
                 double distance = Math.Sqrt(i * i + j * j);
 
@@ -97,6 +111,15 @@ public sealed class BlueWombGenBiome : MicroBiome
                     continue;
 
                 Tile tile = Main.tile[tileX, tileY];
+
+                if (distance < description.Radius + dirtPadding / 2)
+                {
+                    if (!tile.HasTile || !TileID.Sets.Stone[tile.TileType])
+                    {
+                        tile.ClearEverything();
+                        tile.ResetToType(TileID.Dirt);
+                    }
+                }
 
                 if (distance < description.Radius + WorldGen.genRand.Next(3) - 3)
                 {

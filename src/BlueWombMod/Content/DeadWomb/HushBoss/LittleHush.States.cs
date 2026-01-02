@@ -26,11 +26,13 @@ public sealed partial class LittleHush : ModNPC
         PhaseAngelic
     }
 
-    public enum BossAttack
+    public Vector2 HomePosition => new Point(NPC.homeTileX, NPC.homeTileY).ToWorldCoordinates();
+
+    public void SetHome(Vector2 position)
     {
-        Idle,
-        TearSpiral,
-        RadialWaveTears,
+        Point pt = position.ToTileCoordinates();
+        NPC.homeTileX = pt.X;
+        NPC.homeTileY = pt.Y;
     }
 
     public int DistanceToFloor()
@@ -48,7 +50,7 @@ public sealed partial class LittleHush : ModNPC
         return -1;
     }
 
-    public void FaceTargetSpecial()
+    public void FaceTarget()
     {
         NPCAimedTarget target = NPC.GetTargetData();
         if (target.Invalid)
@@ -69,52 +71,52 @@ public sealed partial class LittleHush : ModNPC
 
     public void DoSpawn()
     {
+        NPC.velocity.Y = MathHelper.SmoothStep(0, 1, Utils.GetLerpValue(0, 120, Time, true)) * -3f;
+        NPC.velocity += NPC.DirectionTo(HushSystem.HomePosition).SafeNormalize(Vector2.Zero) * 0.08f;
+        NPC.velocity *= 0.97f;
+
         AnimationFrame = 0;
+        NPC.direction = 0;
 
-        int distance = DistanceToFloor();
+        DrawOffset.X = MathF.Sin(MiscTime / 6f * MathHelper.TwoPi);
 
-        if (distance > 20)
+        FightModeStrength = Utils.GetLerpValue(30, 180, Time, true);
+
+        if (Time > 180)
         {
-            if (Time == 0)
-            {
-                NPC.velocity.Y = -3f;
-            }
-
-            NPC.velocity.Y += 0.4f;
-            if (NPC.velocity.Y > 14)
-            {
-                NPC.velocity.Y = 14;
-            }
-        }
-        else
-        {
-            NPC.velocity.Y *= 0.9f;
-
-            NPC.velocity.Y += (distance - 30) * 0.05f;
-        }
-
-        if (Time > 90)
-        {
-            Music = MusicID.Boss2;
-
             NPC.dontTakeDamage = false;
             State = (int)BossState.PhaseShakingCrying;
             Attack = (int)BossAttack.Idle;
+            Time = 0;
+            return;
         }
 
         Time++;
     }
 
+    public float LifePercentForAttack { get; private set; }
+
+    private void PrepForAttackSelection()
+    {
+        LifePercentForAttack = NPC.GetLifePercent();
+        Time = 0;
+        MiscTime = 0;
+    }
+
     public void Phase_Scared()
     {
-        DrawOffset.X = Main.rand.NextFloat(-2, 2);
-        AnimationFrame = 1;
+        AnimationFrame = 0;
 
-        int distance = DistanceToFloor();
-        NPC.velocity.Y += (distance - 21) * 0.01f;
+        if (Attack == (int)BossAttack.Idle)
+        {
+            PrepForAttackSelection();
+            Attack = (int)BossAttack.TravelAndSpit;
+        }
+        else
+        {
+            DoAttack();
+        }
 
-        NPC.velocity += NPC.DirectionTo(HushSystem.HomePosition).SafeNormalize(Vector2.Zero) * 0.1f;
-
-        NPC.velocity *= 0.96f;
+        DrawOffset.X += MathF.Sin(MiscTime / 6f * MathHelper.TwoPi);
     }
 }

@@ -9,7 +9,7 @@ using Terraria.Graphics.Effects;
 using Terraria.Graphics.Renderers;
 using Terraria.ModLoader;
 
-namespace BlueWombMod.Common;
+namespace BlueWombMod.Common.Graphics;
 
 public class ParticleEngine : ModSystem
 {

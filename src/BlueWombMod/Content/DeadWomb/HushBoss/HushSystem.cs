@@ -5,8 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Terraria;
+using Terraria.Graphics.Light;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
+using Terraria.WorldBuilding;
 
 namespace BlueWombMod.Content.DeadWomb.HushBoss;
 
@@ -24,7 +26,9 @@ public sealed class HushSystem : ModSystem
         homePosition = position;
     }
 
-    public static bool WombInWorld => (Main.expertMode || Main.LocalPlayer.difficulty == 3) && wombPosition.Y > 100;
+    public static bool WombInWorld => Main.expertMode && wombPosition.Y > 100;
+
+    public const int WOMB_RADIUS = 48;
 
     private static Point wombPosition;
     public static ref Point WombPosition => ref wombPosition;
