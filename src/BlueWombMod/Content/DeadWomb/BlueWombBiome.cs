@@ -48,6 +48,24 @@ public static class BlueWombBiomeExtension
 
 public sealed class BlueWombDarknessSystem : ModSystem
 {
+    public override void Load()
+    {
+        On_TileLightScanner.GetTileLight += ApplyBlueWomblight;
+    }
+
+    private void ApplyBlueWomblight(On_TileLightScanner.orig_GetTileLight orig, TileLightScanner self, int x, int y, out Vector3 outputColor)
+    {
+        orig(self, x, y, out outputColor);
+
+        if (!WorldGen.SolidOrSlopedTile(x, y))
+        {
+            float i = x - HushSystem.WombPosition.X;
+            float j = y - HushSystem.WombPosition.Y;
+            float distance = MathF.Sqrt(i * i + j * j);
+            outputColor += Vector3.One * Utils.GetLerpValue(HushSystem.WOMB_RADIUS, 0, distance, true) * MathF.Sqrt(lightFade);
+        }
+    }
+
     private static float lightFade;
 
     public override void ModifyLightingBrightness(ref float scale)
@@ -62,7 +80,6 @@ public sealed class BlueWombDarknessSystem : ModSystem
         }
         lightFade = Math.Clamp(lightFade, 0f, 1f);
 
-        scale *= 1f - lightFade * 0.2f;
-
+        scale *= 1.01f - lightFade * 0.1f * (1f + MathF.Sin(Main.GlobalTimeWrappedHourly) * 0.2f);
     }
 }
