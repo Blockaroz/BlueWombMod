@@ -36,6 +36,7 @@ public class ParticleEngine : ModSystem
         orig(self);
 
         Main.spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, Main.DefaultSamplerState, DepthStencilState.None, Main.Rasterizer, null, Main.Transform);
+        Particles.Settings.AnchorPosition = -Main.screenPosition;
         Particles.Draw(Main.spriteBatch);
         Main.spriteBatch.End();
     }
@@ -45,6 +46,7 @@ public class ParticleEngine : ModSystem
         orig(self);
 
         //Main.spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, Main.DefaultSamplerState, DepthStencilState.None, Main.Rasterizer, null, Main.Transform);
+        WallLayer.Settings.AnchorPosition = -Main.screenPosition;
         WallLayer.Draw(Main.spriteBatch);
         //Main.spriteBatch.End();
     }

@@ -56,6 +56,7 @@ public sealed partial class LittleHush : ModNPC
     public ref float State => ref NPC.ai[0];
     public ref float Attack => ref NPC.ai[1];
     public ref float Time => ref NPC.ai[2];
+    public ref float IdleTime => ref NPC.ai[3];
 
     public ref float MiscTime => ref NPC.localAI[0];
 
@@ -129,13 +130,15 @@ public sealed partial class LittleHush : ModNPC
     {
         drawColor = GetAlpha(drawColor) ?? drawColor;
 
+        Vector2 center = (NPC.Center + DrawOffset).Floor();
+
         Texture2D fade = Assets.Textures.GlowBig.Value;
-        spriteBatch.Draw(fade, NPC.Center + DrawOffset - screenPos, fade.Frame(), Color.Black * 0.25f, NPC.rotation, fade.Size() / 2, NPC.scale * 0.25f, 0, 0);
+        spriteBatch.Draw(fade, center - screenPos, fade.Frame(), Color.Black * 0.25f, NPC.rotation, fade.Size() / 2, NPC.scale * 0.25f, 0, 0);
 
         Texture2D texture = TextureAssets.Npc[Type].Value;
-        Rectangle frame = texture.Frame(3, 4, NPC.direction + 1, AnimationFrame);
+        Rectangle frame = texture.Frame(3, 5, NPC.direction + 1, AnimationFrame);
 
-        spriteBatch.Draw(texture, NPC.Center + DrawOffset - screenPos, frame, drawColor, NPC.rotation, frame.Size() / 2, NPC.scale * DrawScale, 0, 0);
+        spriteBatch.Draw(texture, center - screenPos, frame, drawColor, NPC.rotation, frame.Size() / 2, NPC.scale * DrawScale, 0, 0);
 
         // Debug
         /*

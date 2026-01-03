@@ -41,7 +41,7 @@ public sealed class BloodTear : ModProjectile
         if (MiscTime == 0)
         {
             MiscTime = Main.rand.Next(30);
-            Projectile.scale *= Main.rand.NextFloat(0.6f, 1.2f) + Weight * 0.1f;
+            Projectile.scale *= Main.rand.NextFloat(0.7f, 1.2f) + Weight * 0.1f;
         }
 
         switch (Mode)
@@ -63,6 +63,7 @@ public sealed class BloodTear : ModProjectile
 
                 if (Time == 0)
                 {
+                    Projectile.scale = Projectile.scale * 0.5f + 0.5f;
                     Projectile.Resize(24, 24);
                 }
 
@@ -85,7 +86,7 @@ public sealed class BloodTear : ModProjectile
 
     public override void OnKill(int timeLeft)
     {
-        SoundEngine.PlaySound(SoundID.NPCDeath9 with { Volume = 0.5f }, Projectile.Center);
+        SoundEngine.PlaySound(SoundID.NPCDeath9 with { Volume = 0.5f, MaxInstances = 0 }, Projectile.Center);
 
         for (int i = 0; i < Main.rand.Next(4, 8); i++)
         {

@@ -10,6 +10,7 @@ using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.ModLoader;
+using static log4net.Appender.RollingFileAppender;
 
 namespace BlueWombMod.Content.DeadWomb.HushBoss;
 
@@ -109,9 +110,12 @@ public sealed partial class LittleHush : ModNPC
 
         if (Attack == (int)BossAttack.Idle)
         {
-            PrepForAttackSelection();
-
-            Attack = (int)BossAttack.TravelAndSpit;
+            IdleTime--;
+            if (IdleTime <= 0)
+            {
+                PrepForAttackSelection();
+                Attack = (int)BossAttack.SpitFlies;
+            }
         }
         else
         {

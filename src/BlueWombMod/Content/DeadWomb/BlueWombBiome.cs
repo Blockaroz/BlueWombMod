@@ -97,8 +97,8 @@ public sealed class BlueWombDarknessSystem : ModSystem
     {
         if (lightFade > 0f)
         {
-            tileColor = Color.Lerp(tileColor, new Color(30, 33, 40), lightFade * 0.5f);
-            backgroundColor = Color.Lerp(backgroundColor, new Color(30, 33, 40), lightFade);
+            tileColor = tileColor.MultiplyRGBA(Color.Lerp(Color.White, new Color(30, 33, 40), lightFade * 0.5f));
+            backgroundColor = backgroundColor.MultiplyRGBA(Color.Lerp(Color.White, new Color(30, 33, 40), lightFade));
         }
     }
 }

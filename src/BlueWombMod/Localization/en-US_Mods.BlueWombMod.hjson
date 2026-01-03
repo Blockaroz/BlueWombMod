@@ -63,4 +63,5 @@ Projectiles: {
 NPCs: {
 	LittleHush.DisplayName: ???
 	SuspiciousChild.DisplayName: ???
+	AttackFly.DisplayName: Attack Fly
 }

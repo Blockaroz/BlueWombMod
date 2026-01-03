@@ -1,4 +1,8 @@
-﻿using BlueWombMod.Content.DeadWomb.HushBoss.Projectiles;
+﻿using BlueWombMod.Common.Graphics;
+using BlueWombMod.Content.DeadWomb.HushBoss.Minions.Flies;
+using BlueWombMod.Content.DeadWomb.HushBoss.Projectiles;
+using BlueWombMod.Content.Particles;
+using log4net.Core;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -20,10 +24,11 @@ public sealed partial class LittleHush : ModNPC
     public enum BossAttack
     {
         Idle,
-        Travel,
-        TravelAndSpit,
-        TearSpiral,
-        RadialWaveTears,
+        Teleport,
+        TravelBloodVomit,
+        TearSpiralWave,
+        TearCircle,
+        SpitFlies,
         SkyCrack,
         SkyFracture,
     }
@@ -32,11 +37,16 @@ public sealed partial class LittleHush : ModNPC
     {
         switch (Attack)
         {
-            case (int)BossAttack.TravelAndSpit:
-                Attack_TravelAndSpit();
+            case (int)BossAttack.TravelBloodVomit:
+                Attack_TravelBloodVomit();
                 break;
-            case (int)BossAttack.TearSpiral:
-                Attack_TearSpiral();
+
+            case (int)BossAttack.TearSpiralWave:
+                Attack_TearSpiralWave();
+                break;
+
+            case (int)BossAttack.SpitFlies:
+                Attack_SpitFlies();
                 break;
         }
     }
@@ -47,7 +57,38 @@ public sealed partial class LittleHush : ModNPC
         Attack = (int)BossAttack.Idle;
     }
 
-    public void Attack_TravelAndSpit()
+    public int GetFlyStrength()
+    {
+        return 0;
+    }
+
+    public void FindTarget()
+    {
+        NPC.TargetClosest_WOF();
+    }
+
+    public void FindNewHomeSpot()
+    {
+        NPCAimedTarget target = NPC.GetTargetData();
+
+        Vector2 wombCenter = HushSystem.WombPosition.ToWorldCoordinates();
+        Vector2 offset;
+
+        if (NPC.Distance(wombCenter) > 250)
+        {
+            offset = Vector2.Zero;
+        }
+        else
+        {
+            int offDir = NPC.Center.X > target.Center.X ? -1 : 1;
+            offset = new Vector2(offDir * 300, 0).RotatedBy(Main.rand.NextBool().ToDirectionInt() * MathHelper.PiOver4);
+        }
+
+        // Dust.QuickDust(wombCenter + offset, Color.CornflowerBlue);
+        SetHome(wombCenter + offset);
+    }
+
+    public void Attack_TravelBloodVomit()
     {
         const int ChargeTime = 33;
         const int PlacementTime = 60;
@@ -55,7 +96,7 @@ public sealed partial class LittleHush : ModNPC
 
         if (Time == 0)
         {
-            NPC.TargetClosest();
+            FindTarget();
         }
 
         NPCAimedTarget target = NPC.GetTargetData();
@@ -66,23 +107,9 @@ public sealed partial class LittleHush : ModNPC
 
         FaceTarget();
 
-        if (Main.netMode != NetmodeID.MultiplayerClient && Time == 0)
+        if (Main.netMode != NetmodeID.MultiplayerClient && Time == 0 && Main.rand.NextBool())
         {
-            Vector2 wombCenter = HushSystem.WombPosition.ToWorldCoordinates();
-            Vector2 offset;
-
-            if (NPC.Distance(wombCenter) > 250)
-            {
-                offset = Vector2.Zero;
-            }
-            else
-            {
-                int offDir = NPC.Center.X > target.Center.X ? -1 : 1;
-                offset = new Vector2(offDir * 300, 0).RotatedBy(Main.rand.NextBool().ToDirectionInt() * MathHelper.PiOver4);
-            }
-
-            Dust.QuickDust(wombCenter + offset, Color.CornflowerBlue);
-            SetHome(wombCenter + offset);
+            FindNewHomeSpot();
         }
 
         if (Time < ChargeTime)
@@ -137,28 +164,43 @@ public sealed partial class LittleHush : ModNPC
         }
     }
 
-    public void Attack_TearSpiral()
+    public void Attack_TearSpiralWave()
     {
         const int ChargeTime = 30;
-        const int WindDownTime = 90;
+        const int WindDownTime = 110;
+        
         float percent = Utils.GetLerpValue(1f, 0.75f, LifePercentForAttack, true);
+        
         int WaveCount = 3 + (int)(6 * percent);
-        int WaveTime = 18 - (int)(10 * percent);
+        int WaveTime = 16 - (int)(10 * percent);
         int TotalTime = ChargeTime + WindDownTime + WaveCount * WaveTime;
 
-        NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.1f;
+        NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.1f * Utils.GetLerpValue(20, 300, NPC.Distance(HomePosition));
         NPC.velocity *= 0.9f;
 
         if (Time == 0)
         {
-            NPC.TargetClosest();
-            FaceTarget();
+            FindTarget();
         }
-        
+
         NPCAimedTarget target = NPC.GetTargetData();
         if (target.Invalid)
         {
             // Yada yada
+        }
+
+        FaceTarget();
+
+        if (Time < ChargeTime)
+        {
+            DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.3f, 0.5f), Utils.GetLerpValue(ChargeTime / 2f, ChargeTime, Time, true));
+        }
+        else
+        {
+            float progressIn = Utils.GetLerpValue(0, 6, Time - ChargeTime, true);
+            float progressOut = Utils.GetLerpValue(TotalTime, TotalTime - 10, Time + WindDownTime, true);
+            float wobble = MathF.Sin(Time * 1.5f);
+            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(1.3f, 0.5f), new Vector2(0.8f + wobble * 0.1f, 1.3f - wobble * 0.1f), MathF.Sqrt(progressIn)), progressOut);
         }
 
         if (Time >= ChargeTime && Time < TotalTime - WindDownTime)
@@ -171,14 +213,98 @@ public sealed partial class LittleHush : ModNPC
 
                 if (Main.netMode != NetmodeID.MultiplayerClient)
                 {
-                    int completeDirection = NPC.Center.X < target.Center.X ? 1 : -1;
-                    const int count = 5;
+                    bool altWave = (int)(localTime / WaveTime) % 2 == 0;
+                    int completeDirection = altWave ? 1 : -1;
+
+                    int count = altWave ? 7 : 6;
                     for (int i = 0; i < count; i++)
                     {
-                        Vector2 direction = new Vector2(0, 5f).RotatedBy((float)i / count * MathHelper.TwoPi - curl * 1.5f * completeDirection);
+                        Vector2 direction = new Vector2(0, 6f).RotatedBy((float)i / count * MathHelper.TwoPi - curl * 1.5f * completeDirection);
                         Projectile tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, direction, ModContent.ProjectileType<HolyWaterTear>(), 20, 0.1f);
-                        tear.ai[2] = 0.05f * completeDirection;
-                        tear.timeLeft = 85;
+                        tear.ai[2] = 0.03f * completeDirection;
+                        tear.timeLeft = 207;
+                    }
+                }
+            }
+        }
+
+        Time++;
+
+        if (Time >= TotalTime)
+        {
+            EndAttack();
+        }
+    }
+
+    public void Attack_SpitFlies()
+    {
+        const int ChargeTime = 19;
+        const int SpitTime = 25;
+        const int ReturnHomeTime = 130;
+        const int TotalTime = ChargeTime + SpitTime + ReturnHomeTime;
+
+        if (Time == 0)
+        {
+            FindTarget();
+        }
+
+        NPCAimedTarget target = NPC.GetTargetData();
+        if (target.Invalid)
+        {
+            // Yada yada
+        }
+
+        FaceTarget();
+
+        Vector2 targetPosition = Vector2.Lerp(target.Center, HomePosition, Utils.GetLerpValue(ChargeTime, TotalTime, Time, true) * 0.6f + 0.4f);
+
+        NPC.velocity *= 0.95f;
+        NPC.velocity += NPC.DirectionTo(targetPosition).SafeNormalize(Vector2.Zero) * 0.15f;
+
+        if (Time < ChargeTime)
+        {
+            NPC.velocity *= 1f - Utils.GetLerpValue(ChargeTime / 2f, ChargeTime, Time, true) * 0.3f;
+
+            DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1f, 1.3f), Utils.GetLerpValue(0, ChargeTime, Time, true));
+        }
+
+        Vector2 mouthPosition = NPC.Center + new Vector2(NPC.direction * 10f, -2f).RotatedBy(NPC.rotation);
+
+        if (Time == ChargeTime)
+        {
+            SoundEngine.PlaySound(SoundID.NPCDeath13, NPC.Center);
+
+            for (int i = 0; i < Main.rand.Next(20, 30); i++)
+            {
+                Vector2 flyParticleVel = NPC.velocity + new Vector2(NPC.direction * Main.rand.NextFloat(5f, 17f), 2f).RotatedByRandom(0.6f);
+                Dust flySmoke = Dust.NewDustPerfect(mouthPosition, DustID.Wraith, flyParticleVel, 100, Scale: Main.rand.NextFloat(2f, 4f));
+                flySmoke.noGravity = true;
+            }
+        }
+        if (Time >= ChargeTime)
+        {
+            Vector2 initSquash = Vector2.Lerp(new Vector2(1f, 1.3f), new Vector2(1.5f, 0.7f), Utils.GetLerpValue(ChargeTime, ChargeTime + 2, Time, true));
+            DrawScale = Vector2.Lerp(Vector2.One, initSquash, Utils.GetLerpValue(ChargeTime + SpitTime, ChargeTime + SpitTime / 2, Time, true));
+
+            DrawOffset += Main.rand.NextVector2Circular(8, 8) * Utils.GetLerpValue(ChargeTime + SpitTime, ChargeTime, Time, true);
+
+            if (Time < ChargeTime + SpitTime)
+            {
+                AnimationFrame = 1;
+
+                Vector2 flyParticleVel = NPC.velocity + new Vector2(NPC.direction * Main.rand.NextFloat(3f, 12f), 1f).RotatedByRandom(0.6f);
+                var flyParticle = LittleAngryBugParticle.RequestNew(mouthPosition, flyParticleVel * 0.6f, Main.rand.Next(80, 200), Main.rand.NextFloat(0.5f, 2f));
+                ParticleEngine.Particles.Add(flyParticle);
+
+                Dust flySmoke = Dust.NewDustPerfect(mouthPosition, DustID.Wraith, flyParticleVel, 100, Scale: Main.rand.NextFloat(1f, 3f));
+                flySmoke.noGravity = true;
+
+                if (Main.netMode != NetmodeID.MultiplayerClient)
+                {
+                    if (Time % 7 == 0)
+                    {
+                        NPC fly = NPC.NewNPCDirect(NPC.GetSource_FromThis(), mouthPosition, ModContent.NPCType<AttackFly>());
+                        fly.velocity = new Vector2(NPC.direction * 13f, 6f);
                     }
                 }
             }
