@@ -84,7 +84,7 @@ public sealed class DeadTissueBlockGrowth : ModProjectile
         Variant = Main.rand.Next(3);
         visualOffset = Main.rand.NextVector2Circular(12, 12);
         Projectile.rotation = Main.rand.NextFloat(-0.5f, 0.5f);
-        Projectile.timeLeft = Main.rand.Next(500, 600);
+        Projectile.timeLeft = Main.rand.Next(500, 800);
     }
 
     public override void AI()

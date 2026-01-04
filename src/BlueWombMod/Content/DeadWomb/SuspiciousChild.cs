@@ -74,8 +74,7 @@ public sealed class SuspiciousChild : ModNPC
         }
 
         NPC.scale = 1.5f;
-
-        Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3());
+        Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3() * NPC.Opacity * 0.5f);
     }
 
     public int DistanceToFloor()

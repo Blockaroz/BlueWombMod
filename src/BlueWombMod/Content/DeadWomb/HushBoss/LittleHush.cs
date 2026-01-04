@@ -33,7 +33,7 @@ public sealed partial class LittleHush : ModNPC
         NPC.height = 40;
 
         NPC.boss = true;
-        NPC.lifeMax = 6000;
+        NPC.lifeMax = 4000;
         NPC.defense = 30;
         NPC.knockBackResist = 0f;
 
@@ -44,7 +44,7 @@ public sealed partial class LittleHush : ModNPC
         NPC.BossBar = new NeverValidProgressBar();
         Music = 0;
 
-        AttackPool = new WeightedAttackPool<BossAttack>();
+        AttackPool = new WeightedAttackPool<BossState>();
     }
 
     public override bool? CanFallThroughPlatforms() => true;
@@ -56,12 +56,12 @@ public sealed partial class LittleHush : ModNPC
         return true;
     }
 
-    public ref float State => ref NPC.ai[0];
-    public ref float Attack => ref NPC.ai[1];
+    public ref float Phase => ref NPC.ai[0];
+    public ref float State => ref NPC.ai[1];
     public ref float Time => ref NPC.ai[2];
-    public ref float IdleTime => ref NPC.ai[3];
+    public ref float MiscTime => ref NPC.ai[3];
 
-    public ref float MiscTime => ref NPC.localAI[0];
+    public ref float VisualTime => ref NPC.localAI[0];
 
     public override void OnSpawn(IEntitySource source)
     {
@@ -75,36 +75,27 @@ public sealed partial class LittleHush : ModNPC
         DrawScale = Vector2.One;
         DrawOffset = Vector2.Zero;
 
-        switch (State)
+        switch (Phase)
         {
-            case (int)BossState.Spawning:
-                DoSpawn();
-                break;
-
-            default: 
-            case (int)BossState.Despawning:
-                break;
-
-            case (int)BossState.BigHushTime:
-                break;
-
-            case (int)BossState.PhaseShakingCrying:
+            case (int)BossPhase.Scared:
                 Phase_Scared();
                 break;
 
-            case (int)BossState.PhaseBrave:
-                Phase_Scared();
+            case (int)BossPhase.Standing:
+                Phase_Standing();
                 break;
 
-            case (int)BossState.PhaseAngelic:
-                Phase_Scared();
+            case (int)BossPhase.Angel:
+                Phase_Angel();
                 break;
         }
 
-        NPC.scale = 1.5f;
-        Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3());
+        DoCurrentState();
 
-        MiscTime++;
+        NPC.scale = 1.5f;
+        Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3() * NPC.Opacity * 0.5f);
+
+        VisualTime++;
     }
 
     public override void ModifyHoverBoundingBox(ref Rectangle boundingBox)
@@ -120,6 +111,43 @@ public sealed partial class LittleHush : ModNPC
     public static LazyAsset<Texture2D> WingsTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/DeadWomb/HushBoss/LittleHushWings");
 
     public int AnimationFrame { get; private set; }
+
+    public enum HushyPose
+    {
+        Crouched,
+        SpitCrouched,
+        Standing,
+        SpitStanding,
+        RaiseArmsStanding
+    }
+
+    public int GetSpittingFrame()
+    {
+        switch (AnimationFrame)
+        {
+            default:
+            case (int)HushyPose.Crouched:
+            case (int)HushyPose.SpitCrouched:
+                return (int)HushyPose.SpitCrouched;
+            case (int)HushyPose.Standing:
+            case (int)HushyPose.SpitStanding:
+            case (int)HushyPose.RaiseArmsStanding:
+                return (int)HushyPose.SpitStanding;
+        }
+    }
+
+    public int GetArmRaiseFrame()
+    {
+        switch (AnimationFrame)
+        {
+            default:
+                return (int)HushyPose.Crouched;
+            case (int)HushyPose.Standing:
+            case (int)HushyPose.SpitStanding:
+            case (int)HushyPose.RaiseArmsStanding:
+                return (int)HushyPose.RaiseArmsStanding;
+        }
+    }
 
     private Vector2 drawOffset;
     public ref Vector2 DrawOffset => ref drawOffset;
@@ -141,7 +169,7 @@ public sealed partial class LittleHush : ModNPC
         Vector2 center = (NPC.Center + DrawOffset).Floor();
 
         Texture2D fade = Assets.Textures.GlowBig.Value;
-        spriteBatch.Draw(fade, center - screenPos, fade.Frame(), Color.Black * 0.25f, NPC.rotation, fade.Size() / 2, NPC.scale * 0.25f, 0, 0);
+        spriteBatch.Draw(fade, center - screenPos, fade.Frame(), Color.Black * 0.25f * NPC.Opacity, NPC.rotation, fade.Size() / 2, NPC.scale * 0.25f, 0, 0);
 
         Texture2D texture = TextureAssets.Npc[Type].Value;
         Rectangle frame = texture.Frame(3, 5, NPC.direction + 1, AnimationFrame);

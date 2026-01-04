@@ -58,6 +58,7 @@ Projectiles: {
 	HolySkyCrack.DisplayName: Holy Light
 	HolyWaterTear.DisplayName: Holy Water Tear
 	BloodTear.DisplayName: Blood Tear
+	SpoonBenderTear.DisplayName: Spoon Bender Tear
 }
 
 NPCs: {

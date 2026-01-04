@@ -17,6 +17,8 @@ public sealed class WeightedAttackPool<T> where T : notnull
 
     private readonly List<AttackDefinition> Attacks = [];
 
+    public int Count => Attacks.Count;
+
     public void Add(T item, double weight, params Func<bool>[] include)
     {
         Attacks.Add(new AttackDefinition(item, weight, include));

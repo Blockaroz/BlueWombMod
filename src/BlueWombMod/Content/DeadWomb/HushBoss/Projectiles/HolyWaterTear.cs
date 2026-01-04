@@ -39,7 +39,7 @@ public sealed class HolyWaterTear : ModProjectile
     public ref float MiscTime => ref Projectile.localAI[0];
 
     private int spawnTime;
-    public ref int SpawnTime => ref spawnTime;
+    public ref int Time => ref spawnTime;
 
     public override void AI()
     {
@@ -49,16 +49,16 @@ public sealed class HolyWaterTear : ModProjectile
             Projectile.scale *= Main.rand.NextFloat(0.85f, 1.2f);
         }
 
-        if (SpawnTime < 120 && HostIndex > -1 && HostIndex < Main.npc.Length)
+        if (Time < 120 && HostIndex > 0 && HostIndex <= Main.npc.Length)
         {
-            NPC npc = Main.npc[(int)HostIndex];
+            NPC npc = Main.npc[(int)HostIndex - 1];
             if (!npc.active)
             {
                 HostIndex = -1;
             }
             else
             {
-                Projectile.Center += npc.velocity * Utils.GetLerpValue(120, 30, SpawnTime, true);
+                Projectile.Center += npc.velocity * Utils.GetLerpValue(120, 30, Time, true);
             }
         }
 
@@ -91,7 +91,7 @@ public sealed class HolyWaterTear : ModProjectile
 
         if (Main.rand.NextBool(4))
         {
-            Vector2 dustPos = Projectile.Center + Main.rand.NextVector2Circular(Projectile.width, Projectile.height) * Projectile.scale;
+            Vector2 dustPos = Projectile.Center + Main.rand.NextVector2Circular(Projectile.width, Projectile.height) * Projectile.scale * 0.4f;
             Dust dust = Dust.NewDustPerfect(dustPos, DustID.AncientLight, Projectile.velocity * 0.5f, Alpha: 150, Scale: Main.rand.NextFloat());
             dust.noGravity = true;
             dust.color = Color.Blue with { A = 100 };
@@ -102,7 +102,7 @@ public sealed class HolyWaterTear : ModProjectile
         Lighting.AddLight(Projectile.Center, Color.SlateGray.ToVector3() * 0.5f);
 
         MiscTime++;
-        SpawnTime++;
+        Time++;
     }
 
     public override void OnHitPlayer(Player target, Player.HurtInfo info)
@@ -133,7 +133,7 @@ public sealed class HolyWaterTear : ModProjectile
 
         bool small = Mode == 2;
 
-        float scale = Utils.GetLerpValue(0, 8 * Projectile.scale, SpawnTime, true);
+        float scale = Utils.GetLerpValue(0, 8 * Projectile.scale, Time, true);
 
         Texture2D glow = Assets.Textures.GlowBig.Value;
         Main.EntitySpriteDraw(glow, Projectile.Center - Main.screenPosition, glow.Frame(), Color.White with { A = 0 } * 0.15f, Projectile.rotation, glow.Size() / 2, Projectile.scale * scale * 0.12f, 0, 0);
@@ -142,7 +142,7 @@ public sealed class HolyWaterTear : ModProjectile
         Main.EntitySpriteDraw(texture, Projectile.Center - Main.screenPosition, frame, lightColor * 0.9f, Projectile.rotation, frame.Size() / 2, Projectile.scale * scale, 0, 0);
 
         float flareScale = Projectile.scale * scale * Utils.GetLerpValue(500, 250, Projectile.Distance(Main.LocalPlayer.Center), true);
-        flareScale *= MathF.Sin(SpawnTime / 2f) * 0.2f + 1f;
+        flareScale *= MathF.Sin(Time / 2f) * 0.2f + 1f;
         Texture2D flare = TextureAssets.Extra[ExtrasID.SharpTears].Value;
         Main.EntitySpriteDraw(flare, Projectile.Center - Main.screenPosition, flare.Frame(), Color.SlateGray with { A = 0 } * 0.3f, MathHelper.PiOver2, flare.Size() / 2, new Vector2(0.5f, flareScale * 1.33f), 0, 0);
 

@@ -24,7 +24,7 @@ public sealed class AttackFly : ModNPC
         NPC.width = 28;
         NPC.height = 28;
 
-        NPC.lifeMax = 40;
+        NPC.lifeMax = 90;
         NPC.noGravity = true;
         NPC.knockBackResist = 0.9f;
 

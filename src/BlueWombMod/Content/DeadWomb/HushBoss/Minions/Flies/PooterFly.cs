@@ -26,7 +26,7 @@ public sealed class PooterFly : ModNPC
         NPC.width = 28;
         NPC.height = 28;
 
-        NPC.lifeMax = 100;
+        NPC.lifeMax = 60;
         NPC.noGravity = true;
         NPC.knockBackResist = 0.5f;
 
@@ -87,7 +87,7 @@ public sealed class PooterFly : ModNPC
             const int WaitTime = 70;
             const int SpitTime = 30;
 
-            if (ShootTime > WaitTime || (!target.Invalid && NPC.Distance(target.Center) < 500))
+            if (ShootTime > WaitTime || (!target.Invalid && NPC.Distance(target.Center) < 800))
             {
                 if (ShootTime == (WaitTime + SpitTime / 2))
                 {

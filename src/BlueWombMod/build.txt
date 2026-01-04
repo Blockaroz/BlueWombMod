@@ -1,3 +1,3 @@
-displayName = The Dead Womb from the Binding of Isaac
+displayName = The Hush
 author = Blockaroz
 version = 0.1
