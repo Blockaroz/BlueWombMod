@@ -56,22 +56,20 @@ public sealed class BlueWombGeneration : ModSystem
     {
         Main.tileSolid[ModContent.TileType<DeadTissueBlockUnsafe>()] = true;
     }
-}
 
-public sealed class GenCommand : ModCommand
-{
-    public override string Command => "womb";
-
-    public override CommandType Type => CommandType.Chat;
-
-    public override void Action(CommandCaller caller, string input, string[] args)
+    public override void Load()
     {
-        int x = (int)(Main.MouseWorld.X / 16);
-        int y = (int)(Main.MouseWorld.Y / 16);
+        On_TrackGenerator.IsLocationInvalid += PreventTracksFromCuttingThrough;
+    }
 
-        var biome = new BlueWombGenBiome();
+    private bool PreventTracksFromCuttingThrough(On_TrackGenerator.orig_IsLocationInvalid orig, int x, int y)
+    {
+        if (Main.tile[x, y].TileType == ModContent.TileType<DeadTissueBlockUnsafe>() || Main.tile[x, y].WallType == ModContent.WallType<DeadTissueWallUnsafe>())
+        {
+            return true;
+        }
 
-        biome.Place(new Point(x, y), new StructureMap());
+        return orig(x, y);
     }
 }
 

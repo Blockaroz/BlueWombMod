@@ -7,7 +7,7 @@ using Terraria;
 using Terraria.Audio;
 using Terraria.ModLoader;
 
-namespace BlueWombMod.Common;
+namespace BlueWombMod.Common.Utilities;
 
 public class MusicSystem : ModSystem
 {

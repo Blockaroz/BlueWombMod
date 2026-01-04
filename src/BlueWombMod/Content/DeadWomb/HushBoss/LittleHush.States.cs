@@ -1,16 +1,9 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+﻿using BlueWombMod.Common.Utilities;
+using Microsoft.Xna.Framework;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Terraria;
 using Terraria.DataStructures;
-using Terraria.GameContent;
-using Terraria.ID;
 using Terraria.ModLoader;
-using static log4net.Appender.RollingFileAppender;
 
 namespace BlueWombMod.Content.DeadWomb.HushBoss;
 
@@ -73,8 +66,8 @@ public sealed partial class LittleHush : ModNPC
     public void DoSpawn()
     {
         NPC.velocity.Y = MathHelper.SmoothStep(0, 1, Utils.GetLerpValue(0, 120, Time, true)) * -3f;
-        NPC.velocity += NPC.DirectionTo(HushSystem.HomePosition).SafeNormalize(Vector2.Zero) * 0.08f;
-        NPC.velocity *= 0.97f;
+        NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.5f;
+        NPC.velocity *= 0.5f;
 
         AnimationFrame = 0;
         NPC.direction = 0;
@@ -83,12 +76,15 @@ public sealed partial class LittleHush : ModNPC
 
         FightModeStrength = Utils.GetLerpValue(30, 180, Time, true);
 
-        if (Time > 180)
+        if (Time > 100)
         {
             NPC.dontTakeDamage = false;
             State = (int)BossState.PhaseShakingCrying;
             Attack = (int)BossAttack.Idle;
             Time = 0;
+
+            InitializedAttacks_Scared();
+
             return;
         }
 
@@ -104,6 +100,17 @@ public sealed partial class LittleHush : ModNPC
         MiscTime = 0;
     }
 
+    public WeightedAttackPool<BossAttack> AttackPool = new WeightedAttackPool<BossAttack>();
+
+    public void InitializedAttacks_Scared()
+    {
+        AttackPool.Clear();
+        AttackPool.Add(BossAttack.TearSpiralWave, 1.0);
+        AttackPool.Add(BossAttack.TearCircle, 1.0);
+        AttackPool.Add(BossAttack.TravelBloodVomit, 0.5);
+        AttackPool.Add(BossAttack.SpitFlies, 0.5, SpitFliesCondition);
+    }
+
     public void Phase_Scared()
     {
         AnimationFrame = 0;
@@ -113,8 +120,15 @@ public sealed partial class LittleHush : ModNPC
             IdleTime--;
             if (IdleTime <= 0)
             {
+                IdleTime = 0;
                 PrepForAttackSelection();
-                Attack = (int)BossAttack.Idle;
+
+                if (AttackPool is null)
+                {
+                    InitializedAttacks_Scared();
+                }
+
+                Attack = (int)AttackPool.PickFromTop(2, 0.5);
             }
         }
         else

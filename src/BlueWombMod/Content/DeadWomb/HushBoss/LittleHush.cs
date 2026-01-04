@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using BlueWombMod.Common.Utilities;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using System;
@@ -42,6 +43,8 @@ public sealed partial class LittleHush : ModNPC
 
         NPC.BossBar = new NeverValidProgressBar();
         Music = 0;
+
+        AttackPool = new WeightedAttackPool<BossAttack>();
     }
 
     public override bool? CanFallThroughPlatforms() => true;
@@ -62,7 +65,7 @@ public sealed partial class LittleHush : ModNPC
 
     public override void OnSpawn(IEntitySource source)
     {
-        SetHome(HushSystem.HomePosition);
+        SetHome(HushSystem.WombPosition.ToWorldCoordinates());
 
         NPC.dontTakeDamage = true;
     }
@@ -98,7 +101,7 @@ public sealed partial class LittleHush : ModNPC
                 break;
         }
 
-        NPC.scale = 1f + 0.5f * FightModeStrength;
+        NPC.scale = 1.5f;
         Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3());
 
         MiscTime++;
@@ -111,7 +114,7 @@ public sealed partial class LittleHush : ModNPC
 
     public override Color? GetAlpha(Color drawColor)
     {
-        return drawColor;
+        return drawColor * NPC.Opacity;
     }
 
     public static LazyAsset<Texture2D> WingsTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/DeadWomb/HushBoss/LittleHushWings");

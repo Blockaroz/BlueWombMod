@@ -88,7 +88,7 @@ public sealed class BloodTear : ModProjectile
     {
         SoundEngine.PlaySound(SoundID.NPCDeath9 with { Volume = 0.5f, MaxInstances = 0 }, Projectile.Center);
 
-        for (int i = 0; i < Main.rand.Next(4, 8); i++)
+        for (int i = 0; i < Main.rand.Next(8, 12); i++)
         {
             Vector2 offset = Main.rand.NextVector2Circular(1, 1);
             Vector2 velocity = Projectile.velocity * -0.1f + offset * Main.rand.NextFloat(2f, 5f);

@@ -38,9 +38,9 @@ public sealed class SuspiciousChild : ModNPC
 
     public override void AI()
     {
-        HushSystem.SetHome(HushSystem.WombPosition.ToWorldCoordinates());
+        float homeX = HushSystem.WombPosition.X * 16 + 8;
 
-        NPC.velocity.X += Math.Sign(HushSystem.HomePosition.X - NPC.Center.X) * 0.08f * Utils.GetLerpValue(0, 20, Math.Abs(HushSystem.HomePosition.X - NPC.Center.X), true);
+        NPC.velocity.X += Math.Sign(homeX - NPC.Center.X) * 0.08f * Utils.GetLerpValue(0, 20, Math.Abs(homeX - NPC.Center.X), true);
         NPC.velocity.X *= 0.97f;
         if (Math.Abs(NPC.velocity.X) < 0.01f)
         {
@@ -72,6 +72,8 @@ public sealed class SuspiciousChild : ModNPC
         {
             Time = 0;
         }
+
+        NPC.scale = 1.5f;
 
         Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3());
     }

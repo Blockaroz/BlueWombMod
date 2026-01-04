@@ -2,18 +2,11 @@
 using BlueWombMod.Content.DeadWomb.HushBoss.Minions.Flies;
 using BlueWombMod.Content.DeadWomb.HushBoss.Projectiles;
 using BlueWombMod.Content.Particles;
-using log4net.Core;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Terraria;
 using Terraria.Audio;
 using Terraria.DataStructures;
-using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -26,9 +19,9 @@ public sealed partial class LittleHush : ModNPC
         Idle,
         Teleport,
         TravelBloodVomit,
+        SpitFlies,
         TearSpiralWave,
         TearCircle,
-        SpitFlies,
         SkyCrack,
         SkyFracture,
     }
@@ -41,12 +34,16 @@ public sealed partial class LittleHush : ModNPC
                 Attack_TravelBloodVomit();
                 break;
 
+            case (int)BossAttack.SpitFlies:
+                Attack_SpitFlies();
+                break;
+
             case (int)BossAttack.TearSpiralWave:
                 Attack_TearSpiralWave();
                 break;
 
-            case (int)BossAttack.SpitFlies:
-                Attack_SpitFlies();
+            case (int)BossAttack.TearCircle:
+                Attack_TearCircle();
                 break;
         }
     }
@@ -164,78 +161,6 @@ public sealed partial class LittleHush : ModNPC
         }
     }
 
-    public void Attack_TearSpiralWave()
-    {
-        const int ChargeTime = 30;
-        const int WindDownTime = 110;
-        
-        float percent = Utils.GetLerpValue(1f, 0.75f, LifePercentForAttack, true);
-        
-        int WaveCount = 3 + (int)(6 * percent);
-        int WaveTime = 16 - (int)(10 * percent);
-        int TotalTime = ChargeTime + WindDownTime + WaveCount * WaveTime;
-
-        NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.1f * Utils.GetLerpValue(20, 300, NPC.Distance(HomePosition));
-        NPC.velocity *= 0.9f;
-
-        if (Time == 0)
-        {
-            FindTarget();
-        }
-
-        NPCAimedTarget target = NPC.GetTargetData();
-        if (target.Invalid)
-        {
-            // Yada yada
-        }
-
-        FaceTarget();
-
-        if (Time < ChargeTime)
-        {
-            DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.3f, 0.5f), Utils.GetLerpValue(ChargeTime / 2f, ChargeTime, Time, true));
-        }
-        else
-        {
-            float progressIn = Utils.GetLerpValue(0, 6, Time - ChargeTime, true);
-            float progressOut = Utils.GetLerpValue(TotalTime, TotalTime - 10, Time + WindDownTime, true);
-            float wobble = MathF.Sin(Time * 1.5f);
-            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(1.3f, 0.5f), new Vector2(0.8f + wobble * 0.1f, 1.3f - wobble * 0.1f), MathF.Sqrt(progressIn)), progressOut);
-        }
-
-        if (Time >= ChargeTime && Time < TotalTime - WindDownTime)
-        {
-            var localTime = Time - ChargeTime;
-
-            if (localTime % WaveTime == 0)
-            {
-                float curl = localTime / ((WaveCount - 1f) * WaveTime);
-
-                if (Main.netMode != NetmodeID.MultiplayerClient)
-                {
-                    bool altWave = (int)(localTime / WaveTime) % 2 == 0;
-                    int completeDirection = altWave ? 1 : -1;
-
-                    int count = altWave ? 7 : 6;
-                    for (int i = 0; i < count; i++)
-                    {
-                        Vector2 direction = new Vector2(0, 6f).RotatedBy((float)i / count * MathHelper.TwoPi - curl * 1.5f * completeDirection);
-                        Projectile tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, direction, ModContent.ProjectileType<HolyWaterTear>(), 20, 0.1f);
-                        tear.ai[2] = 0.03f * completeDirection;
-                        tear.timeLeft = 207;
-                    }
-                }
-            }
-        }
-
-        Time++;
-
-        if (Time >= TotalTime)
-        {
-            EndAttack();
-        }
-    }
-
     public record struct FlyStrengthProfile(int AttackFlyCount, int PooterFlyCount)
     {
         public int TotalCount => AttackFlyCount + PooterFlyCount;
@@ -243,10 +168,18 @@ public sealed partial class LittleHush : ModNPC
 
     public FlyStrengthProfile GetFlyProfile()
     {
-        int attack = 5;
-        int pooter = 3;
+        int attackFliesWanted = 5;
+        int pootersWanted = 3;
+        int attackers = NPC.CountNPCS(ModContent.NPCType<AttackFly>());
+        int pooters = NPC.CountNPCS(ModContent.NPCType<PooterFly>());
 
-        return new FlyStrengthProfile(attack, pooter);
+        return new FlyStrengthProfile(attackFliesWanted - attackers, pootersWanted - pooters);
+    }
+
+    public bool SpitFliesCondition()
+    {
+        var flyProfile = GetFlyProfile();
+        return flyProfile.TotalCount > 0;
     }
 
     public void Attack_SpitFlies()
@@ -339,6 +272,171 @@ public sealed partial class LittleHush : ModNPC
                     }
                 }
             }
+        }
+
+        Time++;
+
+        if (Time >= TotalTime)
+        {
+            EndAttack();
+        }
+    }
+
+    public record struct TearSpiralProfile(int WaveCount, int TearsPerWave);
+
+    public void Attack_TearSpiralWave()
+    {
+        float percent = Utils.GetLerpValue(1f, 0.75f, LifePercentForAttack, true);
+        var tearProfile = new TearSpiralProfile(4 + (int)(6 * percent), 7);
+
+        const int ChargeTime = 30;
+        const int WindDownTime = 60;
+
+        int WaveTime = 15 - (int)(5 * percent);
+        int TotalTime = ChargeTime + WindDownTime + tearProfile.WaveCount * WaveTime;
+
+        NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.1f * Utils.GetLerpValue(20, 300, NPC.Distance(HomePosition));
+        NPC.velocity *= 0.9f;
+
+        if (Time == 0)
+        {
+            FindTarget();
+        }
+
+        NPCAimedTarget target = NPC.GetTargetData();
+        if (target.Invalid)
+        {
+            // Yada yada
+        }
+
+        if (Time < ChargeTime)
+        {
+            FaceTarget();
+
+            DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.3f, 0.4f), Utils.GetLerpValue(ChargeTime / 2f, ChargeTime, Time, true));
+        }
+        else
+        {
+            if (Time == ChargeTime)
+            {
+                NPC.direction = NPC.Center.X > target.Center.X ? -1 : 1;
+            }
+
+            float progressIn = Utils.GetLerpValue(0, 6, Time - ChargeTime, true);
+            float progressOut = Utils.GetLerpValue(TotalTime, TotalTime - 10, Time + WindDownTime, true);
+            float wobble = MathF.Sin(Time * 1.25f);
+            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(1.3f, 0.4f), new Vector2(0.8f + wobble * 0.1f, 1.2f - wobble * 0.1f), MathF.Sqrt(progressIn)), progressOut);
+        }
+
+        if (Time >= ChargeTime && Time < TotalTime - WindDownTime)
+        {
+            var localTime = Time - ChargeTime;
+
+            if (localTime % WaveTime == 0)
+            {
+                float curl = localTime / ((tearProfile.WaveCount - 1f) * WaveTime);
+
+                if (Main.netMode != NetmodeID.MultiplayerClient)
+                {
+                    bool altWave = (int)(localTime / WaveTime) % 2 == 0;
+                    int completeDirection = NPC.direction;
+
+                    for (int i = 0; i < tearProfile.TearsPerWave; i++)
+                    {
+                        Vector2 direction = new Vector2(4.5f + percent * 2f * Main.rand.NextFloat()).RotatedBy((float)i / tearProfile.TearsPerWave * MathHelper.TwoPi - curl * completeDirection);
+                        Projectile tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, direction, ModContent.ProjectileType<HolyWaterTear>(), 20, 0.1f);
+                        tear.ai[0] = NPC.whoAmI;
+                        tear.ai[2] = 0.02f * Main.rand.NextFloat(-1f, 1f) * completeDirection;
+                        tear.timeLeft = 200;
+                    }
+                }
+            }
+        }
+        else if (Time > TotalTime - WindDownTime)
+        {
+            FaceTarget();
+        }
+
+        Time++;
+
+        if (Time >= TotalTime)
+        {
+            EndAttack();
+        }
+    }
+
+    public void Attack_TearCircle()
+    {
+        float percent = Utils.GetLerpValue(1f, 0.75f, LifePercentForAttack, true);
+        var tearProfile = new TearSpiralProfile(4 + (int)(6 * percent), 6);
+
+        const int ChargeTime = 40;
+        const int WindDownTime = 50;
+
+        int WaveTime = 16 - (int)(10 * percent);
+        int TotalTime = ChargeTime + WindDownTime + tearProfile.WaveCount * WaveTime;
+
+        NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.1f * Utils.GetLerpValue(20, 300, NPC.Distance(HomePosition));
+        NPC.velocity *= 0.9f;
+
+        if (Time == 0)
+        {
+            FindTarget();
+        }
+
+        NPCAimedTarget target = NPC.GetTargetData();
+        if (target.Invalid)
+        {
+            // Yada yada
+        }
+
+        if (Time < ChargeTime)
+        {
+            FaceTarget();
+
+            DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.3f, 0.5f), Utils.GetLerpValue(ChargeTime / 2f, ChargeTime, Time, true));
+        }
+        else
+        {
+            if (Time == ChargeTime)
+            {
+                NPC.direction = NPC.Center.X > target.Center.X ? -1 : 1;
+            }
+
+            float progressIn = Utils.GetLerpValue(0, 6, Time - ChargeTime, true);
+            float progressOut = Utils.GetLerpValue(TotalTime, TotalTime - 10, Time + WindDownTime, true);
+            float wobble = MathF.Sin(Time * 1.5f);
+            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(0.5f, 1.3f), new Vector2(1.3f - wobble * 0.1f, 0.8f + wobble * 0.1f), MathF.Sqrt(progressIn)), progressOut);
+        }
+
+        if (Time >= ChargeTime && Time < TotalTime - WindDownTime)
+        {
+            var localTime = Time - ChargeTime;
+
+            if (localTime % WaveTime == 0)
+            {
+                float curl = localTime / ((tearProfile.WaveCount - 1f) * WaveTime);
+
+                if (Main.netMode != NetmodeID.MultiplayerClient)
+                {
+                    bool altWave = (int)(localTime / WaveTime) % 2 == 0;
+                    int completeDirection = altWave ? 1 : -1;
+
+                    int count = altWave ? tearProfile.TearsPerWave + 1 : tearProfile.TearsPerWave;
+                    for (int i = 0; i < count; i++)
+                    {
+                        Vector2 direction = new Vector2(0, 4f + percent * 2.5f).RotatedBy((float)i / count * MathHelper.TwoPi - curl * 1.5f * completeDirection);
+                        Projectile tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, direction, ModContent.ProjectileType<HolyWaterTear>(), 20, 0.1f);
+                        tear.ai[0] = NPC.whoAmI;
+                        tear.ai[2] = (0.03f + percent * 0.006f) * completeDirection;
+                        tear.timeLeft = 207 - (int)(percent * 35);
+                    }
+                }
+            }
+        }
+        else if (Time > TotalTime - WindDownTime)
+        {
+            FaceTarget();
         }
 
         Time++;
