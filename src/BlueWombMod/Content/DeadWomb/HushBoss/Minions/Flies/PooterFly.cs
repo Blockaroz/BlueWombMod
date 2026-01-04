@@ -1,4 +1,5 @@
 ﻿using BlueWombMod.Common.Graphics;
+using BlueWombMod.Content.DeadWomb.HushBoss.Projectiles;
 using BlueWombMod.Content.Particles;
 using log4net.Core;
 using Microsoft.Xna.Framework;
@@ -9,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Terraria;
+using Terraria.Audio;
 using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.GameContent.Drawing;
@@ -17,35 +19,28 @@ using Terraria.ModLoader;
 
 namespace BlueWombMod.Content.DeadWomb.HushBoss.Minions.Flies;
 
-public sealed class AttackFly : ModNPC
+public sealed class PooterFly : ModNPC
 {
     public override void SetDefaults()
     {
         NPC.width = 28;
         NPC.height = 28;
 
-        NPC.lifeMax = 40;
+        NPC.lifeMax = 100;
         NPC.noGravity = true;
-        NPC.knockBackResist = 0.9f;
+        NPC.knockBackResist = 0.5f;
 
         NPC.HitSound = SoundID.NPCHit1;
-        NPC.DeathSound = SoundID.NPCDeath1 with { Pitch = 0.33f };
-
-        NPC.damage = 30;
+        NPC.DeathSound = SoundID.NPCDeath11;
     }
 
-    public const int STATE_ATTACK = 0;
-    public const int STATE_PASSIVE = 1;
-
-    public ref float State => ref NPC.ai[0];
+    public ref float ShootTime => ref NPC.ai[0];
     public ref float Time => ref NPC.ai[1];
     public ref float SpawnTime => ref NPC.ai[2];
 
-    public bool Passive { get => State == STATE_PASSIVE; set => State = value ? STATE_PASSIVE : STATE_ATTACK;  }
-
     public override void OnSpawn(IEntitySource source)
     {
-        NPC.scale *= Main.rand.NextFloat(0.75f, 1.1f);
+        NPC.scale *= Main.rand.NextFloat(0.9f, 1.25f);
         NPC.lifeMax = (int)(NPC.lifeMax * NPC.scale);
         NPC.life = NPC.lifeMax;
     }
@@ -57,14 +52,17 @@ public sealed class AttackFly : ModNPC
 
     public override void AI()
     {
+        DrawScale = Vector2.One;
+
         if (NPC.HasBuff(BuffID.Frozen))
         {
             return;
         }
 
+        float aimOffset = 0f;
         if (NPC.HasBuff(BuffID.Confused))
         {
-            Passive = true;
+            aimOffset = 2f;
         }
 
         if (SpawnTime < 20)
@@ -74,54 +72,53 @@ public sealed class AttackFly : ModNPC
         }
         else
         {
-            if (Passive)
+            NPC.velocity *= 0.7f;
+
+            if (Time % 4 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
             {
-                Time--;
-
-                NPC.velocity *= 0.9f;
-
-                if (Time % 4 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
-                {
-                    NPC.velocity += Main.rand.NextVector2Circular(1, 1) * Main.rand.NextFloat(0.2f);
-                    NPC.netUpdate = true;
-                }
-
-                if (Time <= 0)
-                {
-                    Passive = false;
-                    Time = 0;
-                }
+                NPC.velocity += Main.rand.NextVector2Circular(1, 1) * Main.rand.NextFloat();
+                NPC.netUpdate = true;
             }
-            else
+
+            NPC.TargetClosest();
+
+            NPCAimedTarget target = NPC.GetTargetData();
+
+            const int WaitTime = 70;
+            const int SpitTime = 30;
+
+            if (ShootTime > WaitTime || (!target.Invalid && NPC.Distance(target.Center) < 500))
             {
-                NPC.velocity *= 0.97f;
-
-                NPC.TargetClosest();
-
-                NPCAimedTarget target = NPC.GetTargetData();
-
-                if (!target.Invalid)
+                if (ShootTime == (WaitTime + SpitTime / 2))
                 {
-                    if (Time % 4 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
-                    {
-                        NPC.velocity += Main.rand.NextVector2Circular(1, 1) * Main.rand.NextFloat();
-                        NPC.netUpdate = true;
-                    }
+                    SoundEngine.PlaySound(SoundID.Item111 with { MaxInstances = 0, Pitch = 0.5f, PitchVariance = 0.1f }, NPC.Center);
 
-                    NPC.velocity += NPC.DirectionTo(target.Center).SafeNormalize(Vector2.Zero) * 0.2f;
+                    if (!target.Invalid && Main.netMode != NetmodeID.MultiplayerClient)
+                    {
+                        Vector2 shotVel = NPC.DirectionTo(target.Center).SafeNormalize(Vector2.Zero).RotatedByRandom(0.05f) * Main.rand.NextFloat(4f, 6f);
+                        Projectile blood = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, shotVel, ModContent.ProjectileType<BloodTear>(), 40, 0f);
+                        blood.ai[0] = 0;
+                        blood.scale *= 0.9f;
+                    }
                 }
 
-                if (NPC.HasBuff(BuffID.Slow))
+                Vector2 squashIn = Vector2.Lerp(Vector2.One, new Vector2(1.5f, 0.5f), Utils.GetLerpValue(WaitTime + SpitTime / 5f, WaitTime + SpitTime / 3f, ShootTime, true));
+                Vector2 squashOut = Vector2.Lerp(Vector2.One, new Vector2(0.6f, 1.5f), MathF.Sqrt(Utils.GetLerpValue(SpitTime / 1.1f, SpitTime / 2f, ShootTime - WaitTime, true)));
+                DrawScale = Vector2.Lerp(squashIn, squashOut, Utils.GetLerpValue(SpitTime / 2.5f, SpitTime / 2f, ShootTime - WaitTime, true));
+
+                ShootTime++;
+
+                if (ShootTime >= WaitTime + SpitTime)
                 {
-                    NPC.velocity *= 0.68f;
+                    ShootTime = 0;
                 }
             }
         }
 
-        NPC.direction = NPC.velocity.X < 0 ? -1 : 1;
-        NPC.rotation = NPC.velocity.X * 0.015f * NPC.scale;
+        NPC.FaceTarget();
+        NPC.rotation = NPC.velocity.X * 0.01f * NPC.scale;
 
-        if (Main.rand.NextBool(Passive ? 50 : 100))
+        if (Main.rand.NextBool(150))
         {
             Vector2 flyVel = NPC.velocity * 0.5f + Main.rand.NextVector2Circular(2, 2);
             var flyParticle = LittleAngryBugParticle.RequestNew(NPC.Center + Main.rand.NextVector2Circular(40, 40), flyVel, Main.rand.Next(100, 200), 1f);
@@ -150,7 +147,6 @@ public sealed class AttackFly : ModNPC
     public override void OnHitPlayer(Player target, Player.HurtInfo hurtInfo)
     {
         Time = Main.rand.Next(90, 150);
-        Passive = true;
     }
 
     public override void ModifyHoverBoundingBox(ref Rectangle boundingBox)
@@ -159,9 +155,6 @@ public sealed class AttackFly : ModNPC
     }
 
     public ref float AnimationFrame => ref NPC.localAI[0];
-
-    private int angerFrameCounter;
-    public ref float AngerFrame => ref NPC.localAI[1];
 
     public override void FindFrame(int frameHeight)
     {
@@ -172,7 +165,7 @@ public sealed class AttackFly : ModNPC
 
         NPC.frameCounter++;
         
-        if (NPC.frameCounter > (Passive ? 3 : 2))
+        if (NPC.frameCounter > 4)
         {
             NPC.frameCounter = 0;
 
@@ -182,35 +175,26 @@ public sealed class AttackFly : ModNPC
                 AnimationFrame = 0;
             }
         }
-
-        angerFrameCounter++;
-        if (angerFrameCounter > 2)
-        {
-            angerFrameCounter = 0;
-            if (Passive && !NPC.IsABestiaryIconDummy)
-            {
-                AngerFrame = 0;
-            }
-            else
-            {
-                AngerFrame = AngerFrame > 0 ? 0 : 1;
-            }
-        }
     }
+
+    private Vector2 drawScale;
+    public ref Vector2 DrawScale => ref drawScale;
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
         Texture2D texture = TextureAssets.Npc[Type].Value;
 
-        Rectangle frame = texture.Frame(2, 4, (int)AngerFrame, (int)AnimationFrame);
+        Rectangle frame = texture.Frame(1, 4, 0, (int)AnimationFrame);
 
         float scale = NPC.scale * Utils.GetLerpValue(-5, 15, SpawnTime, true);
         if (NPC.IsABestiaryIconDummy)
         {
+            DrawScale = Vector2.One;
             scale = 1f;
         }
 
-        spriteBatch.Draw(texture, NPC.Center - screenPos, frame, drawColor * 1.2f, NPC.rotation, frame.Size() / 2f, scale, 0, 0);
+        SpriteEffects flip = NPC.direction < 0 ? SpriteEffects.FlipHorizontally : 0;
+        spriteBatch.Draw(texture, NPC.Center - screenPos, frame, drawColor * 1.2f, NPC.rotation, frame.Size() / 2f, DrawScale * scale, flip, 0);
 
         return false;
     }

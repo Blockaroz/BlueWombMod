@@ -114,7 +114,7 @@ public sealed partial class LittleHush : ModNPC
             if (IdleTime <= 0)
             {
                 PrepForAttackSelection();
-                Attack = (int)BossAttack.SpitFlies;
+                Attack = (int)BossAttack.Idle;
             }
         }
         else

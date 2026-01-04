@@ -49,7 +49,7 @@ public sealed class BloodTear : ModProjectile
             default:
             case 0: // Fly forward
 
-                Projectile.velocity *= 0.98f;
+                Projectile.velocity *= 1f - Weight * 0.1f;
 
                 break;
 

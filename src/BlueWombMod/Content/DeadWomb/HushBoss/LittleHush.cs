@@ -128,6 +128,11 @@ public sealed partial class LittleHush : ModNPC
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
+        if (NPC.IsABestiaryIconDummy)
+        {
+            DrawScale = Vector2.One;
+        }
+
         drawColor = GetAlpha(drawColor) ?? drawColor;
 
         Vector2 center = (NPC.Center + DrawOffset).Floor();

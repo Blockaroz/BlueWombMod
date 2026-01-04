@@ -64,4 +64,5 @@ NPCs: {
 	LittleHush.DisplayName: ???
 	SuspiciousChild.DisplayName: ???
 	AttackFly.DisplayName: Attack Fly
+	PooterFly.DisplayName: Pooter
 }

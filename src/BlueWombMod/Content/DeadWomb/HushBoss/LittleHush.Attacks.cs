@@ -236,13 +236,21 @@ public sealed partial class LittleHush : ModNPC
         }
     }
 
+    public record struct FlyStrengthProfile(int AttackFlyCount, int PooterFlyCount)
+    {
+        public int TotalCount => AttackFlyCount + PooterFlyCount;
+    }
+
+    public FlyStrengthProfile GetFlyProfile()
+    {
+        int attack = 5;
+        int pooter = 3;
+
+        return new FlyStrengthProfile(attack, pooter);
+    }
+
     public void Attack_SpitFlies()
     {
-        const int ChargeTime = 19;
-        const int SpitTime = 25;
-        const int ReturnHomeTime = 130;
-        const int TotalTime = ChargeTime + SpitTime + ReturnHomeTime;
-
         if (Time == 0)
         {
             FindTarget();
@@ -255,6 +263,19 @@ public sealed partial class LittleHush : ModNPC
         }
 
         FaceTarget();
+
+        FlyStrengthProfile flyProfile = GetFlyProfile();
+
+        if (flyProfile.TotalCount < 1)
+        {
+            EndAttack();
+            return;
+        }
+
+        const int ChargeTime = 19;
+        int SpitTime = flyProfile.AttackFlyCount * 5 + 5;
+        const int ReturnHomeTime = 50;
+        int TotalTime = ChargeTime + SpitTime + ReturnHomeTime;
 
         Vector2 targetPosition = Vector2.Lerp(target.Center, HomePosition, Utils.GetLerpValue(ChargeTime, TotalTime, Time, true) * 0.6f + 0.4f);
 
@@ -280,6 +301,15 @@ public sealed partial class LittleHush : ModNPC
                 Dust flySmoke = Dust.NewDustPerfect(mouthPosition, DustID.Wraith, flyParticleVel, 100, Scale: Main.rand.NextFloat(2f, 4f));
                 flySmoke.noGravity = true;
             }
+
+            if (Main.netMode != NetmodeID.MultiplayerClient)
+            {
+                for (int i = 0; i < flyProfile.PooterFlyCount; i++)
+                {
+                    NPC fly = NPC.NewNPCDirect(NPC.GetSource_FromThis(), mouthPosition, ModContent.NPCType<PooterFly>());
+                    fly.velocity = new Vector2(0, 5f).RotatedBy((float)i / flyProfile.PooterFlyCount * MathHelper.Pi * NPC.direction);
+                }
+            }
         }
         if (Time >= ChargeTime)
         {
@@ -301,10 +331,11 @@ public sealed partial class LittleHush : ModNPC
 
                 if (Main.netMode != NetmodeID.MultiplayerClient)
                 {
-                    if (Time % 7 == 0)
+                    int flyTime = SpitTime / flyProfile.AttackFlyCount;
+                    if (Time % flyTime == 0)
                     {
                         NPC fly = NPC.NewNPCDirect(NPC.GetSource_FromThis(), mouthPosition, ModContent.NPCType<AttackFly>());
-                        fly.velocity = new Vector2(NPC.direction * 13f, 6f);
+                        fly.velocity = new Vector2(NPC.direction * Main.rand.NextFloat(10f, 15f), Main.rand.NextFloat(-2f, 5f));
                     }
                 }
             }
