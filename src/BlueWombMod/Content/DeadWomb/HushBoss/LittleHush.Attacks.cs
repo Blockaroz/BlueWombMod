@@ -3,6 +3,7 @@ using BlueWombMod.Content.DeadWomb.HushBoss.Minions.Flies;
 using BlueWombMod.Content.DeadWomb.HushBoss.Projectiles;
 using BlueWombMod.Content.Particles;
 using Microsoft.Xna.Framework;
+using ReLogic.Peripherals.RGB;
 using System;
 using Terraria;
 using Terraria.Audio;
@@ -77,6 +78,10 @@ public sealed partial class LittleHush : ModNPC
 
             case (int)BossState.TearCircle:
                 Attack_TearCircle();
+                break;
+
+            case (int)BossState.TearSplitters:
+                Attack_TearSplitters();
                 break;
         }
     }
@@ -182,6 +187,8 @@ public sealed partial class LittleHush : ModNPC
 
         if (Time < ChargeTime)
         {
+            AnimationFrame = (int)HushyPose.Crouched;
+
             NPC.velocity += NPC.DirectionTo(target.Center).SafeNormalize(Vector2.Zero) * 0.4f;
             NPC.velocity *= 0.92f - 0.5f * Utils.GetLerpValue(ChargeTime * 0.5f, ChargeTime, Time, true);
 
@@ -303,11 +310,11 @@ public sealed partial class LittleHush : ModNPC
 
             if (Time < TotalTime - PlacementTime)
             {
-                AnimationFrame = GetSpittingFrame();
+                AnimationFrame = (int)HushyPose.SpitCrouched;
             }
         }
 
-        bool farEnough = NPC.Distance(HomePosition) > 300;
+        bool farEnough = NPC.Distance(HomePosition) > 200;
         if (Main.netMode != NetmodeID.MultiplayerClient && Time == TotalTime - 5 && farEnough)
         {
             TeleportTo(HomePosition);
@@ -329,8 +336,8 @@ public sealed partial class LittleHush : ModNPC
     public FlyStrengthProfile GetFlyProfile()
     {
         float inversePercent = Utils.GetLerpValue(0.9f, 0.3f, LifePercentForAttack, true);
-        int attackFliesWanted = 5 + (int)(3 * inversePercent);
-        int pootersWanted = 2 + (int)(3 * inversePercent);
+        int attackFliesWanted = 2 + (int)(6 * inversePercent);
+        int pootersWanted = (int)(3 * inversePercent);
         int attackers = NPC.CountNPCS(ModContent.NPCType<AttackFly>());
         int pooters = NPC.CountNPCS(ModContent.NPCType<PooterFly>());
 
@@ -360,16 +367,16 @@ public sealed partial class LittleHush : ModNPC
 
         FlyStrengthProfile flyProfile = GetFlyProfile();
 
-        if (flyProfile.TotalCount < 1)
+        const int ChargeTime = 19;
+        int SpitTime = flyProfile.AttackFlyCount * 7;
+        const int ReturnHomeTime = 134;
+        int TotalTime = ChargeTime + SpitTime + ReturnHomeTime;
+
+        if (flyProfile.TotalCount < 1 && Time < ChargeTime)
         {
             EndAttack();
             return;
         }
-
-        const int ChargeTime = 19;
-        int SpitTime = flyProfile.AttackFlyCount * 7 + 5;
-        const int ReturnHomeTime = 140;
-        int TotalTime = ChargeTime + SpitTime + ReturnHomeTime;
 
         Vector2 targetPosition = Vector2.Lerp(target.Center, HomePosition, Utils.GetLerpValue(ChargeTime, TotalTime, Time, true) * 0.6f + 0.4f);
 
@@ -410,14 +417,12 @@ public sealed partial class LittleHush : ModNPC
         if (Time >= ChargeTime)
         {
             Vector2 initSquash = Vector2.Lerp(new Vector2(1f, 1.3f), new Vector2(1.5f, 0.7f), Utils.GetLerpValue(ChargeTime, ChargeTime + 2, Time, true));
-            DrawScale = Vector2.Lerp(Vector2.One, initSquash, Utils.GetLerpValue(ChargeTime + SpitTime, ChargeTime + SpitTime / 2, Time, true));
+            DrawScale = Vector2.Lerp(Vector2.One, initSquash, Utils.GetLerpValue(ChargeTime + SpitTime + 8, ChargeTime + SpitTime - 8, Time, true));
 
             DrawOffset += Main.rand.NextVector2Circular(8, 8) * Utils.GetLerpValue(ChargeTime + SpitTime, ChargeTime, Time, true);
 
             if (Time < ChargeTime + SpitTime)
             {
-                AnimationFrame = (int)HushyPose.SpitCrouched;
-
                 Vector2 flyParticleVel = NPC.velocity + new Vector2(NPC.direction * Main.rand.NextFloat(3f, 12f), 1f).RotatedByRandom(0.6f);
                 var flyParticle = LittleAngryBugParticle.RequestNew(mouthPosition, flyParticleVel * 0.6f, Main.rand.Next(80, 200), Main.rand.NextFloat(0.5f, 2f));
                 ParticleEngine.Particles.Add(flyParticle);
@@ -434,6 +439,11 @@ public sealed partial class LittleHush : ModNPC
                         fly.velocity = new Vector2(NPC.direction * Main.rand.NextFloat(10f, 15f), Main.rand.NextFloat(-2f, 5f));
                     }
                 }
+            }
+
+            if (Time < ChargeTime + SpitTime + 8)
+            {
+                AnimationFrame = (int)HushyPose.SpitCrouched;
             }
         }
 
@@ -474,9 +484,11 @@ public sealed partial class LittleHush : ModNPC
 
         if (Time < ChargeTime)
         {
-            FaceTarget();
+            AnimationFrame = (int)HushyPose.Crouched;
 
             DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.3f, 0.4f), Utils.GetLerpValue(ChargeTime / 2f, ChargeTime, Time, true));
+
+            FaceTarget();
         }
         else
         {
@@ -486,9 +498,11 @@ public sealed partial class LittleHush : ModNPC
             }
 
             float progressIn = Utils.GetLerpValue(0, 6, Time - ChargeTime, true);
-            float progressOut = Utils.GetLerpValue(TotalTime, TotalTime - 10, Time + WindDownTime, true);
-            float wobble = MathF.Sin(Time * 1.25f);
-            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(1.3f, 0.4f), new Vector2(0.8f + wobble * 0.1f, 1.2f - wobble * 0.1f), MathF.Sqrt(progressIn)), progressOut);
+            float progressOut = Utils.GetLerpValue(TotalTime, ChargeTime, Time + WindDownTime, true);
+            float wobble = MathF.Sin(Utils.GetLerpValue(ChargeTime, TotalTime - 10, Time, true) * MathHelper.Pi);
+            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(1.3f, 0.4f), new Vector2(1.2f - wobble * 0.3f, 0.9f + wobble * 0.4f), MathF.Sqrt(progressIn)), progressOut);
+            DrawOffset.Y = (DrawScale.Y - 1f) * -24f;
+            DrawOffset += Main.rand.NextVector2Circular(4, 4) * wobble * progressOut;
         }
 
         if (Time >= ChargeTime && Time < TotalTime - WindDownTime)
@@ -535,7 +549,7 @@ public sealed partial class LittleHush : ModNPC
         var tearProfile = new TearSpiralProfile(5 - (int)(2 * percent), 12);
 
         const int ChargeTime = 30;
-        const int WindDownTime = 150;
+        const int WindDownTime = 110;
 
         int WaveTime = 10 - (int)(2 * percent);
         int TotalTime = ChargeTime + WindDownTime + tearProfile.WaveCount * WaveTime;
@@ -567,11 +581,19 @@ public sealed partial class LittleHush : ModNPC
                 NPC.direction = NPC.Center.X > target.Center.X ? -1 : 1;
             }
 
+            if (Time < TotalTime - WindDownTime / 2)
+            {
+                AnimationFrame = GetArmRaiseFrame();
+                WingFrame = (int)HushyWingPose.Splayed;
+            }
+
             float progressIn = Utils.GetLerpValue(0, 6, Time - ChargeTime, true);
-            float progressOut = Utils.GetLerpValue(TotalTime, TotalTime - 10, Time + WindDownTime, true);
-            float wobble = MathF.Sin(Time * 1.25f);
-            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(1.3f, 0.4f), new Vector2(0.8f + wobble * 0.1f, 1.2f - wobble * 0.1f), MathF.Sqrt(progressIn)), progressOut);
+            float progressOut = Utils.GetLerpValue(TotalTime - WindDownTime / 2f, TotalTime - WindDownTime / 1.5f, Time, true);
+            float wobble = MathF.Sin(Time * 1.15f);
+            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(1.3f, 0.4f), new Vector2(0.8f, 1.3f - wobble * 0.05f), MathF.Sqrt(progressIn)), progressOut);
         }
+
+        DrawOffset.Y = (DrawScale.Y - 1f) * -30f;
 
         if (Time >= ChargeTime && Time < TotalTime - WindDownTime)
         {
@@ -607,6 +629,7 @@ public sealed partial class LittleHush : ModNPC
 
         if (Time >= TotalTime)
         {
+            MiscTime = 30;
             EndAttack();
         }
     }
@@ -626,7 +649,7 @@ public sealed partial class LittleHush : ModNPC
         {
             FindTarget();
 
-            if (Main.netMode != NetmodeID.MultiplayerClient && Main.rand.NextBool())
+            if (Main.netMode != NetmodeID.MultiplayerClient && NPC.Distance(HomePosition) > 100 && Main.rand.NextBool())
             {
                 TeleportTo(HomePosition);
             }
@@ -643,9 +666,12 @@ public sealed partial class LittleHush : ModNPC
 
         if (Time < ChargeTime)
         {
+            AnimationFrame = GetArmRaiseFrame();
+            WingFrame = (int)HushyWingPose.Splayed;
+
             FaceTarget();
 
-            DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.3f, 0.5f), Utils.GetLerpValue(ChargeTime / 2f, ChargeTime, Time, true));
+            DrawScale = Vector2.Lerp(Vector2.One, new Vector2(0.6f, 1.3f), MathF.Sqrt(Utils.GetLerpValue(ChargeTime / 4f, ChargeTime, Time, true)));
         }
         else
         {
@@ -655,13 +681,17 @@ public sealed partial class LittleHush : ModNPC
             }
 
             float progressIn = Utils.GetLerpValue(0, 6, Time - ChargeTime, true);
-            float progressOut = Utils.GetLerpValue(TotalTime, TotalTime - 10, Time + WindDownTime, true);
-            float wobble = MathF.Sin(Time * 1.5f);
-            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(0.5f, 1.3f), new Vector2(1.3f - wobble * 0.1f, 0.8f + wobble * 0.1f), MathF.Sqrt(progressIn)), progressOut);
+            float progressOut = Utils.GetLerpValue(TotalTime, TotalTime - 30, Time - ChargeTime + WindDownTime, true);
+            DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(0.6f, 1.3f), new Vector2(1.3f, 0.8f), MathF.Sqrt(progressIn)), progressOut);
         }
+
+        DrawOffset.Y = (DrawScale.Y - 1f) * -24f;
 
         if (Time >= ChargeTime && Time < TotalTime - WindDownTime)
         {
+            AnimationFrame = (int)HushyPose.Crouched;
+            WingFrame = (int)HushyWingPose.Closed;
+
             var localTime = Time - ChargeTime;
 
             if (localTime % WaveTime == 0)
@@ -694,6 +724,70 @@ public sealed partial class LittleHush : ModNPC
 
         if (Time >= TotalTime)
         {
+            MiscTime = 150;
+            EndAttack();
+        }
+    }
+
+    public void Attack_TearSplitters()
+    {
+        const int ChargeTime = 23;
+        const int PlacementTime = 120;
+        const int TotalTime = ChargeTime + PlacementTime;
+
+        if (Main.netMode != NetmodeID.MultiplayerClient && Time == 0 && Main.rand.NextBool())
+        {
+            FindNewHomeSpot();
+        }
+
+        NPC.direction = 0;
+
+        if (Time < ChargeTime)
+        {
+            AnimationFrame = (int)HushyPose.Crouched;
+            WingFrame = (int)HushyWingPose.Closed;
+
+            NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.4f;
+            NPC.velocity *= 0.92f - 0.5f * Utils.GetLerpValue(ChargeTime * 0.5f, ChargeTime, Time, true);
+
+            DrawOffset += Main.rand.NextVector2Circular(5, 5) * MathF.Sin(Utils.GetLerpValue(0, ChargeTime, Time, true) * MathHelper.Pi);
+            DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.4f, 0.6f), Utils.GetLerpValue(0, ChargeTime, Time, true));
+        }
+        if (Time == ChargeTime)
+        {
+            if (Main.netMode != NetmodeID.MultiplayerClient)
+            {
+                int tearCount = Main.rand.Next(4, 8);
+                float randRot = Main.rand.NextFloat(-1f, 1f);
+                for (int i = 0; i < tearCount; i++)
+                {
+                    Vector2 velocity = new Vector2(0, 8f).RotatedBy((float)i / tearCount * MathHelper.TwoPi + randRot);
+                    Projectile tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, velocity, ModContent.ProjectileType<HolyWaterTear>(), 20, 0.1f);
+                    tear.ai[0] = NPC.whoAmI + 1;
+                    tear.ai[1] = 2;
+                    tear.timeLeft = 70;
+                }
+            }
+        }
+        if (Time >= ChargeTime)
+        {
+            Vector2 initSquash = Vector2.Lerp(new Vector2(1.3f, 0.7f), new Vector2(0.8f, 1.4f), Utils.GetLerpValue(ChargeTime, ChargeTime + 6, Time, true));
+            DrawScale = Vector2.Lerp(Vector2.One, initSquash, Utils.GetLerpValue(ChargeTime + 20, ChargeTime + 5, Time, true));
+
+            NPC.velocity *= 0.97f;
+
+            if (Time < ChargeTime + 30)
+            {
+                AnimationFrame = GetArmRaiseFrame();
+                WingFrame = (int)HushyWingPose.Splayed;
+            }
+        }
+
+        Time++;
+
+        if (Time >= TotalTime)
+        {
+            MiscTime = 63;
             EndAttack();
         }
     }

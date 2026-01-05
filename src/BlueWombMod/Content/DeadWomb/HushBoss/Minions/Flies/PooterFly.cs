@@ -26,7 +26,8 @@ public sealed class PooterFly : ModNPC
         NPC.width = 28;
         NPC.height = 28;
 
-        NPC.lifeMax = 60;
+        NPC.lifeMax = 100;
+        NPC.defense = 5;
         NPC.noGravity = true;
         NPC.knockBackResist = 0.5f;
 

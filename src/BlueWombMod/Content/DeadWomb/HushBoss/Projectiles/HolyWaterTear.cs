@@ -84,7 +84,21 @@ public sealed class HolyWaterTear : ModProjectile
 
                 break;
 
-            case 2: // Small
+            case 2: // Split
+
+                Projectile.scale = 1f + MathF.Sin(MiscTime * 0.1f) * 0.2f;
+                Projectile.velocity *= 0.984f;
+
+                if (Projectile.timeLeft < 30)
+                {
+                    Projectile.velocity *= 0.95f;
+                }
+
+                break;
+
+            case 3: // Small
+
+                Projectile.velocity *= 0.984f;
 
                 break;
         }
@@ -125,13 +139,29 @@ public sealed class HolyWaterTear : ModProjectile
 
         var particle = TearPopParticle.RequestNew(Projectile.Center, timeLeft: Main.rand.Next(5, 18), scale: Projectile.scale);
         ParticleEngine.Particles.Add(particle);
+
+        if (Main.netMode != NetmodeID.MultiplayerClient)
+        {
+            if (Mode == 2)
+            {
+                float randRot = Main.rand.NextFloat(-1f, 1f);
+                for (int i = 0; i < 4; i++)
+                {
+                    Vector2 velocity = new Vector2(0, 4f).RotatedBy((float)i / 4 * MathHelper.TwoPi + randRot);
+                    Projectile tear = Projectile.NewProjectileDirect(Projectile.GetSource_FromThis(), Projectile.Center, velocity, ModContent.ProjectileType<HolyWaterTear>(), Projectile.damage / 2, 0f);
+                    tear.ai[0] = HostIndex;
+                    tear.ai[1] = 3;
+                    tear.timeLeft = 70;
+                }
+            }
+        }
     }
 
     public override bool PreDraw(ref Color lightColor)
     {
         Texture2D texture = TextureAssets.Projectile[Type].Value;
 
-        bool small = Mode == 2;
+        bool small = Mode == 3;
 
         float scale = Utils.GetLerpValue(0, 8 * Projectile.scale, Time, true);
 

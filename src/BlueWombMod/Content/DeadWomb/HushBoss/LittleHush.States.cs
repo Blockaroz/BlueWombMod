@@ -79,7 +79,6 @@ public sealed partial class LittleHush : ModNPC
 
     public void DoSpawn()
     {
-        NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.5f;
         NPC.velocity *= 0.5f;
 
         AnimationFrame = 0;
@@ -99,8 +98,10 @@ public sealed partial class LittleHush : ModNPC
 
             InitializeAttacks_Scared();
 
-            State = (int)BossState.Idle;
-            MiscTime = 120;
+            PrepareForAttack();
+            State = (int)AttackPool.PickFromTop(AttackPool.Count, 0);
+
+            AddBossArmorFactor = 8000;
 
             return;
         }
@@ -110,7 +111,7 @@ public sealed partial class LittleHush : ModNPC
 
     public float LifePercentForAttack { get; private set; }
 
-    private void PrepForAttackSelection()
+    private void PrepareForAttack()
     {
         LifePercentForAttack = NPC.GetLifePercent();
         Time = 0;
@@ -133,6 +134,25 @@ public sealed partial class LittleHush : ModNPC
     {
         AnimationFrame = (int)HushyPose.Crouched;
 
+        if (State != (int)BossState.StandUp)
+        {
+            if (NPC.GetLifePercent() < 0.6f)
+            {
+                NPC.dontTakeDamage = true;
+
+                if (State == (int)BossState.Idle)
+                {
+                    State = (int)BossState.StandUp;
+                    Time = 0;
+                    MiscTime = 0;
+                }
+            }
+            else
+            {
+                DrawOffset.X += MathF.Sin(VisualTime / 5f * MathHelper.TwoPi) * 1.5f;
+            }
+        }
+
         if (State == (int)BossState.Idle)
         {
             if (MiscTime > 0)
@@ -144,22 +164,8 @@ public sealed partial class LittleHush : ModNPC
             }
             else
             {
-                PrepForAttackSelection();
+                PrepareForAttack();
                 State = (int)AttackPool.PickFromTop(3, 0.15);
-            }
-        }
-
-        if (State != (int)BossState.StandUp)
-        {
-            if (NPC.GetLifePercent() < 0.6f)
-            {
-                State = (int)BossState.StandUp;
-                Time = 0;
-                MiscTime = 0;
-            }
-            else
-            {
-                DrawOffset.X += MathF.Sin(VisualTime / 6f * MathHelper.TwoPi);
             }
         }
     }
@@ -173,6 +179,8 @@ public sealed partial class LittleHush : ModNPC
         const int WakeTime = 22;
         const int GainFootingTime = 17;
 
+        Phase = (int)BossPhase.Standing;
+
         if (Time < 30)
         {
             AnimationFrame = (int)HushyPose.Crouched;
@@ -184,8 +192,6 @@ public sealed partial class LittleHush : ModNPC
         }
         else
         {
-            Phase = (int)BossPhase.Standing;
-
             AnimationFrame = (int)HushyPose.Standing;
 
             float progress = Utils.GetLerpValue(WakeTime, WakeTime + GainFootingTime, Time, true);
@@ -196,12 +202,11 @@ public sealed partial class LittleHush : ModNPC
         if (Time > WakeTime + GainFootingTime + 2)
         {
             NPC.dontTakeDamage = false;
-            Phase = (int)BossPhase.Standing;
 
             InitializeAttacks_Standing();
 
-            State = (int)BossState.Idle;
-            MiscTime = 120;
+            PrepareForAttack();
+            State = (int)AttackPool.PickFromTop(AttackPool.Count, 0);
         }
 
         Time++;
@@ -212,14 +217,35 @@ public sealed partial class LittleHush : ModNPC
         AttackPool.Clear();
         AttackPool.Add(BossState.TearSpiralWave, 1.0);
         AttackPool.Add(BossState.TearCircle, 1.0);
-        AttackPool.Add(BossState.TravelHomingSpray, 0.1);
-        AttackPool.Add(BossState.SpitFlies, 0.2, SpitFliesCondition);
+        AttackPool.Add(BossState.TravelBloodVomit, 0.3);
+        AttackPool.Add(BossState.TravelHomingSpray, 0.3);
+        AttackPool.Add(BossState.SpitFlies, 0.5, SpitFliesCondition);
+        AttackPool.Add(BossState.TearSplitters, 0.2);
         AttackPool.Add(BossState.TearSpiralStream, 1.0);
     }
 
     public void Phase_Standing()
     {
         AnimationFrame = (int)HushyPose.Standing;
+
+        if (State != (int)BossState.GrowWings)
+        {
+            if (NPC.GetLifePercent() < 0.4f)
+            {
+                NPC.dontTakeDamage = true;
+
+                if (State == (int)BossState.Idle)
+                {
+                    State = (int)BossState.GrowWings;
+                    Time = 0;
+                    MiscTime = 0;
+                }
+            }
+            else
+            {
+                DrawOffset.Y += MathF.Sin(VisualTime / 120f * MathHelper.TwoPi) * 2f;
+            }
+        }
 
         if (State == (int)BossState.Idle)
         {
@@ -232,22 +258,8 @@ public sealed partial class LittleHush : ModNPC
             }
             else
             {
-                PrepForAttackSelection();
+                PrepareForAttack();
                 State = (int)AttackPool.PickFromTop(3, 0.1);
-            }
-        }
-
-        if (State != (int)BossState.GrowWings)
-        {
-            if (NPC.GetLifePercent() < 0.4f)
-            {
-                State = (int)BossState.GrowWings;
-                Time = 0;
-                MiscTime = 0;
-            }
-            else
-            {
-                DrawOffset.Y += MathF.Sin(VisualTime / 120f * MathHelper.TwoPi) * 2f;
             }
         }
     }
@@ -261,9 +273,12 @@ public sealed partial class LittleHush : ModNPC
         const int WakeTime = 22;
         const int SpreadWingsTime = 37;
 
+        Phase = (int)BossPhase.Angel;
+
         if (Time < 30)
         {
             AnimationFrame = (int)HushyPose.Crouched;
+            WingFrame = (int)HushyWingPose.Closed;
 
             float progress = Utils.GetLerpValue(0, WakeTime, Time, true);
             DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.4f, 0.6f), progress);
@@ -272,9 +287,8 @@ public sealed partial class LittleHush : ModNPC
         }
         else
         {
-            Phase = (int)BossPhase.Standing;
-
             AnimationFrame = (int)HushyPose.RaiseArmsStanding;
+            WingFrame = (int)HushyWingPose.Splayed;
 
             float progress = Utils.GetLerpValue(WakeTime, WakeTime + SpreadWingsTime, Time, true);
             DrawScale = Vector2.Lerp(Vector2.One, Vector2.Lerp(new Vector2(1.4f, 0.6f), new Vector2(0.7f, 1.2f), MathF.Sqrt(Utils.GetLerpValue(0f, 0.6f, progress, true))), MathF.Sqrt(1f - progress));
@@ -284,15 +298,27 @@ public sealed partial class LittleHush : ModNPC
         if (Time > WakeTime + SpreadWingsTime + 2)
         {
             NPC.dontTakeDamage = false;
-            Phase = (int)BossPhase.Angel;
 
-            InitializeAttacks_Standing();
+            InitializeAttacks_Angel();
 
-            State = (int)BossState.Idle;
-            MiscTime = 120;
+            PrepareForAttack();
+            State = (int)AttackPool.PickFromTop(AttackPool.Count, 0);
         }
 
         Time++;
+    }
+
+    public void InitializeAttacks_Angel()
+    {
+        AttackPool.Clear();
+        AttackPool.Add(BossState.TearSpiralWave, 1.0);
+        AttackPool.Add(BossState.TearCircle, 1.0);
+        AttackPool.Add(BossState.TravelBloodVomit, 0.3);
+        AttackPool.Add(BossState.TravelHomingSpray, 0.3);
+        AttackPool.Add(BossState.TearSplitters, 0.2);
+        AttackPool.Add(BossState.SpitFlies, 0.5, SpitFliesCondition);
+        AttackPool.Add(BossState.TearSpiralStream, 0.3);
+        AttackPool.Add(BossState.TearSpiralStream, 1.0);
     }
 
     public void Phase_Angel()
@@ -305,12 +331,16 @@ public sealed partial class LittleHush : ModNPC
             {
                 MiscTime--;
 
-                NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.2f * Utils.GetLerpValue(10, 300, NPC.Distance(HomePosition));
-                NPC.velocity *= 0.9f;
+                FindTarget();
+                NPCAimedTarget target = NPC.GetTargetData();
+                Vector2 targetPos = Vector2.Lerp(HomePosition, target.Center, Utils.GetLerpValue(0, 60, MiscTime, true));
+
+                NPC.velocity += NPC.DirectionTo(targetPos).SafeNormalize(Vector2.Zero) * 0.2f;
+                NPC.velocity *= 0.93f;
             }
             else
             {
-                PrepForAttackSelection();
+                PrepareForAttack();
                 State = (int)AttackPool.PickFromTop(3, 0.1);
             }
         }
