@@ -73,7 +73,6 @@ public sealed class SuspiciousChild : ModNPC
             Time = 0;
         }
 
-        NPC.scale = 1.5f;
         Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3() * NPC.Opacity * 0.5f);
     }
 
@@ -136,6 +135,8 @@ public sealed class SuspiciousChild : ModNPC
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
+        NPC.scale = 1.5f;
+
         drawColor = GetAlpha(drawColor) ?? drawColor;
 
         Texture2D fade = Assets.Textures.GlowBig.Value;

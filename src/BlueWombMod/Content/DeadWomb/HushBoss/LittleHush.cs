@@ -37,9 +37,8 @@ public sealed partial class LittleHush : ModNPC
         NPC.defense = 30;
         NPC.knockBackResist = 0f;
 
-        NPC.noTileCollide = false;
+        NPC.noTileCollide = true;
         NPC.noGravity = true;
-        NPC.behindTiles = true;
 
         NPC.BossBar = new NeverValidProgressBar();
         Music = 0;
@@ -95,7 +94,6 @@ public sealed partial class LittleHush : ModNPC
 
         DoCurrentState();
 
-        NPC.scale = 1.5f;
         Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3() * NPC.Opacity * 0.5f);
 
         if (AddBossArmorFactor > 0)
@@ -204,6 +202,21 @@ public sealed partial class LittleHush : ModNPC
         }
     }
 
+    public override bool CheckDead()
+    {
+        if (NPC.life < 1 && State != (int)BossState.BigTimeHush)
+        {
+            NPC.life = 1;
+            NPC.dontTakeDamage = true;
+
+            Time = 0;
+            MiscTime = 0;
+            State = (int)BossState.BigTimeHush;
+        }
+
+        return false;
+    }
+
     private Vector2 drawOffset;
     public ref Vector2 DrawOffset => ref drawOffset;
 
@@ -214,6 +227,8 @@ public sealed partial class LittleHush : ModNPC
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
+        NPC.scale = 1.5f;
+
         if (NPC.IsABestiaryIconDummy)
         {
             DrawScale = Vector2.One;
@@ -228,7 +243,7 @@ public sealed partial class LittleHush : ModNPC
 
         Texture2D wings = WingsTexture.Value;
         Rectangle wingFrame = wings.Frame(1, 7, 0, (int)WingFlapFrame);
-        Color wingColor = (drawColor * 1.2f) with { A = 150 };
+        Color wingColor = (drawColor * 1.2f) with { A = 150 } * NPC.Opacity;
 
         if (Phase == (int)BossPhase.Angel && WingFrame != (int)HushyWingPose.Closed)
         {

@@ -25,7 +25,7 @@ public sealed partial class LittleHush : ModNPC
 
         StandUp,
         GrowWings,
-        BigHushTime,
+        BigTimeHush,
 
         TravelBloodVomit,
         TravelHomingSpray,
@@ -44,6 +44,10 @@ public sealed partial class LittleHush : ModNPC
                 DoSpawn();
                 break;
 
+            case (int)BossState.Despawning:
+                DoDespawn();
+                break;
+
             case (int)BossState.Teleport:
                 DoTeleport();
                 break;
@@ -54,6 +58,10 @@ public sealed partial class LittleHush : ModNPC
 
             case (int)BossState.GrowWings:
                 DoPhaseChange_GrowWings();
+                break;
+
+            case (int)BossState.BigTimeHush:
+                DoBigTimeHush();
                 break;
 
             case (int)BossState.TravelBloodVomit:
@@ -129,15 +137,27 @@ public sealed partial class LittleHush : ModNPC
         }
     }
 
+
+    public bool CheckTarget()
+    {
+        NPC.TargetClosest_WOF();
+
+        if (NPC.GetTargetData().Invalid)
+        {
+            State = (int)BossState.Despawning;
+            Time = 0;
+            MiscTime = 0;
+
+            return false;
+        }
+
+        return true;
+    }
+
     public void EndAttack()
     {
         Time = 0;
         State = (int)BossState.Idle;
-    }
-
-    public void FindTarget()
-    {
-        NPC.TargetClosest_WOF();
     }
 
     public void FindNewHomeSpot()
@@ -163,22 +183,13 @@ public sealed partial class LittleHush : ModNPC
 
     public void Attack_TravelBloodVomit()
     {
+        NPCAimedTarget target = NPC.GetTargetData();
+
+        FaceTarget();
+
         const int ChargeTime = 33;
         const int PlacementTime = 60;
         const int TotalTime = ChargeTime + PlacementTime;
-
-        if (Time == 0)
-        {
-            FindTarget();
-        }
-
-        NPCAimedTarget target = NPC.GetTargetData();
-        if (target.Invalid)
-        {
-            // Yada yada
-        }
-
-        FaceTarget();
 
         if (Main.netMode != NetmodeID.MultiplayerClient && Time == 0 && Main.rand.NextBool())
         {
@@ -241,27 +252,19 @@ public sealed partial class LittleHush : ModNPC
 
     public void Attack_TravelHomingSpray()
     {
+        NPCAimedTarget target = NPC.GetTargetData();
+
+        FaceTarget();
+
         const int ChargeTime = 63;
         const int SprayTime = 50;
         const int PlacementTime = 100;
         const int TotalTime = ChargeTime + SprayTime + PlacementTime;
 
-        if (Time == 0)
-        {
-            FindTarget();
-        }
-
-        NPCAimedTarget target = NPC.GetTargetData();
-        if (target.Invalid)
-        {
-            // Yada yada
-        }
-
-        FaceTarget();
-
         if (Main.netMode != NetmodeID.MultiplayerClient && Time == 0 && Main.rand.NextBool())
         {
-            FindNewHomeSpot();
+            Vector2 teleportPos = Vector2.Lerp(target.Center + new Vector2(100 * Math.Sign(HomePosition.X - target.Center.X), 0), NPC.Center, 0.4f);
+            TeleportTo(teleportPos);
         }
 
         if (Time < ChargeTime)
@@ -287,7 +290,7 @@ public sealed partial class LittleHush : ModNPC
                 {
                     float distanceToTarget = NPC.Distance(target.Center);
 
-                    Vector2 velocity = NPC.DirectionTo(target.Center) + new Vector2(NPC.direction, 0) + Main.rand.NextVector2Circular(4, 4);
+                    Vector2 velocity = NPC.DirectionTo(target.Center).SafeNormalize(Vector2.Zero) + new Vector2(NPC.direction, 0) + Main.rand.NextVector2Circular(4, 4);
                     var tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, velocity, ModContent.ProjectileType<SpoonBenderTear>(), 30, 0f);
                     tear.ai[0] = NPC.whoAmI + 1;
                 }
@@ -352,16 +355,7 @@ public sealed partial class LittleHush : ModNPC
 
     public void Attack_SpitFlies()
     {
-        if (Time == 0)
-        {
-            FindTarget();
-        }
-
         NPCAimedTarget target = NPC.GetTargetData();
-        if (target.Invalid)
-        {
-            // Yada yada
-        }
 
         FaceTarget();
 
@@ -468,16 +462,7 @@ public sealed partial class LittleHush : ModNPC
         int WaveTime = 15 - (int)(5 * percent);
         int TotalTime = ChargeTime + WindDownTime + tearProfile.WaveCount * WaveTime;
 
-        if (Time == 0)
-        {
-            FindTarget();
-        }
-
         NPCAimedTarget target = NPC.GetTargetData();
-        if (target.Invalid)
-        {
-            // Yada yada
-        }
 
         NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.2f * Utils.GetLerpValue(10, 300, NPC.Distance(HomePosition));
         NPC.velocity *= 0.9f;
@@ -554,16 +539,7 @@ public sealed partial class LittleHush : ModNPC
         int WaveTime = 10 - (int)(2 * percent);
         int TotalTime = ChargeTime + WindDownTime + tearProfile.WaveCount * WaveTime;
 
-        if (Time == 0)
-        {
-            FindTarget();
-        }
-
         NPCAimedTarget target = NPC.GetTargetData();
-        if (target.Invalid)
-        {
-            // Yada yada
-        }
 
         NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.2f * Utils.GetLerpValue(10, 300, NPC.Distance(HomePosition));
         NPC.velocity *= 0.9f;
@@ -645,21 +621,12 @@ public sealed partial class LittleHush : ModNPC
         int WaveTime = 16 - (int)(10 * percent);
         int TotalTime = ChargeTime + WindDownTime + tearProfile.WaveCount * WaveTime;
 
-        if (Time == 0)
+        if (Main.netMode != NetmodeID.MultiplayerClient && Time == 0 && NPC.Distance(HomePosition) > 100 && Main.rand.NextBool())
         {
-            FindTarget();
-
-            if (Main.netMode != NetmodeID.MultiplayerClient && NPC.Distance(HomePosition) > 100 && Main.rand.NextBool())
-            {
-                TeleportTo(HomePosition);
-            }
+            TeleportTo(HomePosition);
         }
 
         NPCAimedTarget target = NPC.GetTargetData();
-        if (target.Invalid)
-        {
-            // Yada yada
-        }
 
         NPC.velocity += NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 0.2f * Utils.GetLerpValue(10, 300, NPC.Distance(HomePosition));
         NPC.velocity *= 0.9f;
@@ -718,6 +685,11 @@ public sealed partial class LittleHush : ModNPC
         else if (Time > TotalTime - WindDownTime)
         {
             FaceTarget();
+        }
+
+        if (Main.netMode != NetmodeID.MultiplayerClient && Time == TotalTime - WindDownTime / 2 && Main.rand.NextBool())
+        {
+            FindNewHomeSpot();
         }
 
         Time++;
