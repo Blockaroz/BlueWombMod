@@ -32,6 +32,8 @@ public sealed class SuspiciousChild : ModNPC
         NPC.noGravity = true;
         NPC.noTileCollide = false;
         NPC.knockBackResist = 0.2f;
+
+        NPC.rarity = 1;
     }
 
     public ref float Time => ref NPC.ai[0];
@@ -135,8 +137,6 @@ public sealed class SuspiciousChild : ModNPC
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
-        NPC.scale = 1.5f;
-
         drawColor = GetAlpha(drawColor) ?? drawColor;
 
         Texture2D fade = Assets.Textures.GlowBig.Value;

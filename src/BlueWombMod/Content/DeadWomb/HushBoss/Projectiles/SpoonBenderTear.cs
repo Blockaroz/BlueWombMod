@@ -94,7 +94,7 @@ public sealed class SpoonBenderTear : ModProjectile
         float flareScale = Projectile.scale * scale * Utils.GetLerpValue(500, 250, Projectile.Distance(Main.LocalPlayer.Center), true);
         flareScale *= MathF.Sin(Time / 2f) * 0.2f + 1f;
         Texture2D flare = TextureAssets.Extra[ExtrasID.SharpTears].Value;
-        Main.EntitySpriteDraw(flare, Projectile.Center - Main.screenPosition, flare.Frame(), Color.Indigo with { A = 0 }, MathHelper.PiOver2, flare.Size() / 2, new Vector2(0.5f, flareScale * 1.33f), 0, 0);
+        Main.EntitySpriteDraw(flare, Projectile.Center - Main.screenPosition, flare.Frame(), Color.Indigo with { A = 0 } * 0.4f, MathHelper.PiOver2, flare.Size() / 2, new Vector2(0.5f, flareScale * 1.33f), 0, 0);
 
         return false;
     }

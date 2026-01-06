@@ -227,8 +227,6 @@ public sealed partial class LittleHush : ModNPC
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
-        NPC.scale = 1.5f;
-
         if (NPC.IsABestiaryIconDummy)
         {
             DrawScale = Vector2.One;

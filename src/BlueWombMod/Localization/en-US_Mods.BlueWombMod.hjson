@@ -59,6 +59,7 @@ Projectiles: {
 	HolyWaterTear.DisplayName: Holy Water Tear
 	BloodTear.DisplayName: Blood Tear
 	SpoonBenderTear.DisplayName: Spoon Bender Tear
+	TestCreature.DisplayName: Test Creature
 }
 
 NPCs: {
@@ -66,4 +67,5 @@ NPCs: {
 	SuspiciousChild.DisplayName: ???
 	AttackFly.DisplayName: Attack Fly
 	PooterFly.DisplayName: Pooter
+	Hush.DisplayName: Hush
 }

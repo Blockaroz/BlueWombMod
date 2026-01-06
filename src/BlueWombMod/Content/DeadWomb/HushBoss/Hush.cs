@@ -7,8 +7,8 @@ using Terraria.ModLoader;
 
 namespace BlueWombMod.Content.DeadWomb.HushBoss;
 
-// [AutoloadBossHead]
-public sealed class Hush
+[AutoloadBossHead]
+public sealed class Hush : ModNPC
 {
 
 }
