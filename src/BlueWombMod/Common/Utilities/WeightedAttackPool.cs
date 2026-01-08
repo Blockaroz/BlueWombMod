@@ -37,7 +37,7 @@ public sealed class WeightedAttackPool<T> where T : notnull
     public double GetChance(T item)
     {
         return Attacks.FirstOrDefault(n => n.Item.Equals(item), null)?.PickChance ?? 0;
-	}
+    }
 
     public T PickFromTop(int count = -1, double weightAdjustment = 0.1)
     {
