@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+﻿using BlueWombMod.Common.Graphics;
+using BlueWombMod.Content.Particles;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using Terraria;
@@ -49,7 +51,7 @@ public sealed class SpoonBenderTear : ModProjectile
         Projectile.velocity *= 0.99f;
 
         Vector2 dustPos = Projectile.Center + Main.rand.NextVector2Circular(Projectile.width, Projectile.height) * Projectile.scale;
-        Dust dust = Dust.NewDustPerfect(dustPos, DustID.Shadowflame, Projectile.velocity * 0.5f, Scale: Main.rand.NextFloat(0.5f, 1f));
+        Dust dust = Dust.NewDustPerfect(dustPos, DustID.Shadowflame, Projectile.velocity * 0.5f, Scale: Main.rand.NextFloat(0.33f, 1f));
         dust.noGravity = true;
 
         Projectile.rotation = Projectile.velocity.X * 0.015f * Projectile.scale;
@@ -66,11 +68,14 @@ public sealed class SpoonBenderTear : ModProjectile
     {
         SoundEngine.PlaySound(SoundID.NPCDeath9 with { Volume = 0.5f, MaxInstances = 0 }, Projectile.Center);
 
+        var particle = HomingTearPopParticle.RequestNew(Projectile.Center, timeLeft: Main.rand.Next(15, 25), scale: Projectile.scale);
+        ParticleEngine.Particles.Add(particle);
+
         for (int i = 0; i < Main.rand.Next(8, 12); i++)
         {
             Vector2 offset = Main.rand.NextVector2Circular(1, 1);
             Vector2 velocity = Projectile.velocity * -0.1f + offset * Main.rand.NextFloat(2f, 5f);
-            Dust bleed = Dust.NewDustPerfect(Projectile.Center + offset * Projectile.width * Projectile.scale, DustID.Shadowflame, velocity, Scale: Main.rand.NextFloat(1f, 2f));
+            Dust bleed = Dust.NewDustPerfect(Projectile.Center + offset * Projectile.width * Projectile.scale, DustID.Shadowflame, velocity, Scale: Main.rand.NextFloat(0.5f, 1f));
             bleed.noGravity = true;
         }
     }
@@ -90,7 +95,7 @@ public sealed class SpoonBenderTear : ModProjectile
         float flareScale = Projectile.scale * scale * Utils.GetLerpValue(500, 250, Projectile.Distance(Main.LocalPlayer.Center), true);
         flareScale *= MathF.Sin(Time / 2f) * 0.2f + 1f;
         Texture2D flare = TextureAssets.Extra[ExtrasID.SharpTears].Value;
-        Main.EntitySpriteDraw(flare, Projectile.Center - Main.screenPosition, flare.Frame(), Color.Indigo with { A = 0 } * 0.4f, MathHelper.PiOver2, flare.Size() / 2, new Vector2(0.5f, flareScale * 1.33f), 0, 0);
+        Main.EntitySpriteDraw(flare, Projectile.Center - Main.screenPosition, flare.Frame(), Color.Indigo with { A = 0 } * 0.4f, MathHelper.PiOver2, flare.Size() / 2, new Vector2(0.5f, flareScale), 0, 0);
 
         return false;
     }

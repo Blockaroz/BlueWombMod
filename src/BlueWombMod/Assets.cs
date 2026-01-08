@@ -22,4 +22,9 @@ public static class Assets
     {
         public static LazyAsset<Texture2D> GlowBig { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/Extras/GlowBig");
     }
+
+    public static class Music
+    {
+
+    }
 }

@@ -1,4 +1,5 @@
-﻿using BlueWombMod.Content.BlueWomb.HushBoss.Drops;
+﻿using BlueWombMod.Common.Graphics;
+using BlueWombMod.Content.BlueWomb.HushBoss.Drops;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Diagnostics;
@@ -39,7 +40,9 @@ public sealed partial class Hush : ModNPC
         NPC.HitSound = SoundID.NPCHit8 with { MaxInstances = 0, Volume = 0.7f, Pitch = 0.1f };
         NPC.DeathSound = null;
 
-        Music = 0;
+        Music = MusicID.Boss2;
+
+        RenderData = new HushRenderData(NPC);
     }
 
     public override bool? CanFallThroughPlatforms() => true;
@@ -63,6 +66,7 @@ public sealed partial class Hush : ModNPC
 
     public override void AI()
     {
+        RenderData.Reset();
     }
 
     public override void ModifyIncomingHit(ref NPC.HitModifiers modifiers)
@@ -113,11 +117,16 @@ public sealed partial class Hush : ModNPC
         HushSystem.DownedTheHush = true;
     }
 
-    public static LazyAsset<Texture2D> EyesTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/BlueWomb/HushBoss/HushEyes");
-    public static LazyAsset<Texture2D> MouthTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/BlueWomb/HushBoss/HushMouth");
+    public HushRenderData RenderData;
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
+        spriteBatch.End(out var ss);
+
+        RenderData.Draw(spriteBatch, screenPos);
+
+        spriteBatch.Begin(ss);
+
         return false;
     }
 }

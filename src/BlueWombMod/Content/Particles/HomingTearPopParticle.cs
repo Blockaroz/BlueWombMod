@@ -6,9 +6,9 @@ using Terraria.Graphics.Renderers;
 
 namespace BlueWombMod.Content.Particles;
 
-public class TearPopParticle : BaseParticle<TearPopParticle>
+public class HomingTearPopParticle : BaseParticle<HomingTearPopParticle>
 {
-    public static LazyAsset<Texture2D> TextureAsset { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/Particles/{nameof(TearPopParticle)}");
+    public static LazyAsset<Texture2D> TextureAsset { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/Particles/{nameof(HomingTearPopParticle)}");
 
     public Vector2 Position;
 
@@ -17,7 +17,7 @@ public class TearPopParticle : BaseParticle<TearPopParticle>
     public float Scale;
     private bool Flip;
 
-    public static TearPopParticle RequestNew(Vector2 position, int timeLeft = 20, float scale = 1f)
+    public static HomingTearPopParticle RequestNew(Vector2 position, int timeLeft = 20, float scale = 1f)
     {
         var pop = Pool.RequestParticle();
         pop.Position = position;
@@ -50,11 +50,13 @@ public class TearPopParticle : BaseParticle<TearPopParticle>
     {
         Texture2D texture = TextureAsset.Value;
         Rectangle frame = texture.Frame(1, 7, 0, (int)((float)TimeLeft / MaxTime * 7));
-        Color color = Lighting.GetColor(Position.ToTileCoordinates()) * 0.9f;
+        Rectangle glowFrame = texture.Frame(1, 7, 0, (int)((float)TimeLeft / MaxTime * 7));
+        Color color = Lighting.GetColor(Position.ToTileCoordinates()) * 1.2f;
 
         SpriteEffects flip = Flip ? SpriteEffects.FlipHorizontally : 0;
 
         Texture2D glow = Assets.Textures.GlowBig.Value;
+
         float fadeOut = Utils.GetLerpValue(MaxTime, 0, TimeLeft, true);
         spritebatch.Draw(glow, Position + settings.AnchorPosition, glow.Frame(), Color.White with { A = 0 } * 0.15f * fadeOut, 0, glow.Size() / 2, Scale * 0.12f, 0, 0);
 

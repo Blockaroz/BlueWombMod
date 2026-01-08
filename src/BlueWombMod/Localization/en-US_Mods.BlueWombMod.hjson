@@ -49,6 +49,7 @@ Projectiles: {
 	HolyWaterTear.DisplayName: Holy Water Tear
 	BloodTear.DisplayName: Blood Tear
 	SpoonBenderTear.DisplayName: Spoon Bender Tear
+	ContinuumTear.DisplayName: Continuum Tear
 }
 
 NPCs: {

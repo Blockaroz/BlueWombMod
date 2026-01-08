@@ -133,22 +133,19 @@ public sealed class HolyWaterTear : ModProjectile
             dust.color = Color.Blue with { A = 100 };
         }
 
-        var particle = TearPopParticle.RequestNew(Projectile.Center, timeLeft: Main.rand.Next(5, 18), scale: Projectile.scale);
+        var particle = TearPopParticle.RequestNew(Projectile.Center, timeLeft: Main.rand.Next(5, 25), scale: Projectile.scale);
         ParticleEngine.Particles.Add(particle);
 
-        if (Main.netMode != NetmodeID.MultiplayerClient)
+        if (Main.netMode != NetmodeID.MultiplayerClient && Mode == 2)
         {
-            if (Mode == 2)
+            float randRot = Main.rand.NextFloat(-1f, 1f);
+            for (int i = 0; i < 4; i++)
             {
-                float randRot = Main.rand.NextFloat(-1f, 1f);
-                for (int i = 0; i < 4; i++)
-                {
-                    Vector2 velocity = new Vector2(0, 4f).RotatedBy((float)i / 4 * MathHelper.TwoPi + randRot);
-                    Projectile tear = Projectile.NewProjectileDirect(Projectile.GetSource_FromThis(), Projectile.Center, velocity, ModContent.ProjectileType<HolyWaterTear>(), Projectile.damage / 2, 0f);
-                    tear.ai[0] = HostIndex;
-                    tear.ai[1] = 3;
-                    tear.timeLeft = 70;
-                }
+                Vector2 velocity = new Vector2(0, 4f).RotatedBy((float)i / 4 * MathHelper.TwoPi + randRot);
+                Projectile tear = Projectile.NewProjectileDirect(Projectile.GetSource_FromThis(), Projectile.Center, velocity, ModContent.ProjectileType<HolyWaterTear>(), Projectile.damage / 2, 0f);
+                tear.ai[0] = HostIndex;
+                tear.ai[1] = 3;
+                tear.timeLeft = 70;
             }
         }
     }

@@ -13,8 +13,8 @@ public sealed class BloodTear : ModProjectile
 {
     public override void SetDefaults()
     {
-        Projectile.width = 14;
-        Projectile.height = 14;
+        Projectile.width = 12;
+        Projectile.height = 12;
 
         Projectile.friendly = false;
         Projectile.hostile = true;
@@ -63,6 +63,12 @@ public sealed class BloodTear : ModProjectile
                     Projectile.Resize(24, 24);
                 }
 
+                if (Time > 30)
+                    Projectile.velocity *= 0.93f;
+
+                if (Time > 90)
+                    Projectile.Kill();
+
                 break;
         }
 
@@ -90,6 +96,17 @@ public sealed class BloodTear : ModProjectile
             Vector2 velocity = Projectile.velocity * -0.1f + offset * Main.rand.NextFloat(2f, 5f);
             Dust bleed = Dust.NewDustPerfect(Projectile.Center + offset * Projectile.width * Projectile.scale, DustID.Blood, velocity, Scale: Main.rand.NextFloat(1f, 2f));
             bleed.noGravity = true;
+        }
+
+        if (Main.netMode != NetmodeID.MultiplayerClient && Mode == 2)
+        {
+            float randRot = Main.rand.NextFloat(-1f, 1f);
+            for (int i = 0; i < 4; i++)
+            {
+                Vector2 velocity = new Vector2(0, 4f).RotatedBy((float)i / 4 * MathHelper.TwoPi + randRot);
+                Projectile tear = Projectile.NewProjectileDirect(Projectile.GetSource_FromThis(), Projectile.Center, velocity, ModContent.ProjectileType<BloodTear>(), Projectile.damage / 2, 0f);
+                tear.scale *= 0.8f;
+            }
         }
     }
 
