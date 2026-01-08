@@ -109,6 +109,7 @@ public sealed partial class Hush : ModNPC
                 ChatHelper.BroadcastChatMessage(NetworkText.FromKey(Lang.misc[32].Key), new Color(50, 255, 130));
         }
 
-        NPC.SetEventFlagCleared(ref inHardmode, 19);
+        NPC.SetEventFlagCleared(ref inHardmode, 19); // This doesn't do anything as of yet
+        HushSystem.DownedTheHush = true;
     }
 }
