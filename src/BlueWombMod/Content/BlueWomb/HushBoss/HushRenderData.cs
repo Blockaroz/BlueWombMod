@@ -2,5 +2,7 @@
 
 public struct HushRenderData
 {
+    public bool ShowFace { get; set; }
+
 
 }

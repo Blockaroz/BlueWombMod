@@ -27,7 +27,7 @@ public sealed class HushBossBag : ModItem
 
     public override void ModifyItemLoot(ItemLoot itemLoot)
     {
-        itemLoot.Add(ItemDropRule.Common(ModContent.ItemType<BlueDemonHeart>()));
+        itemLoot.Add(ItemDropRule.ByCondition(new Conditions.NotUsedDemonHeart(), ModContent.ItemType<BlueDemonHeart>()));
         itemLoot.Add(ItemDropRule.Common(ModContent.ItemType<HushMask>(), chanceDenominator: 7));
         itemLoot.Add(ItemDropRule.Common(ItemID.Pwnhammer));
 

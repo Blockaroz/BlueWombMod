@@ -1,5 +1,6 @@
 ﻿using BlueWombMod.Content.BlueWomb.HushBoss.Drops;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System.Diagnostics;
 using Terraria;
 using Terraria.Chat;
@@ -35,7 +36,7 @@ public sealed partial class Hush : ModNPC
         NPC.noTileCollide = true;
         NPC.noGravity = true;
 
-        NPC.HitSound = SoundID.NPCHit9;
+        NPC.HitSound = SoundID.NPCHit8 with { MaxInstances = 0, Volume = 0.7f, Pitch = 0.1f };
         NPC.DeathSound = null;
 
         Music = 0;
@@ -62,7 +63,6 @@ public sealed partial class Hush : ModNPC
 
     public override void AI()
     {
-
     }
 
     public override void ModifyIncomingHit(ref NPC.HitModifiers modifiers)
@@ -111,5 +111,13 @@ public sealed partial class Hush : ModNPC
 
         NPC.SetEventFlagCleared(ref inHardmode, 19); // This doesn't do anything as of yet
         HushSystem.DownedTheHush = true;
+    }
+
+    public static LazyAsset<Texture2D> EyesTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/BlueWomb/HushBoss/HushEyes");
+    public static LazyAsset<Texture2D> MouthTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/BlueWomb/HushBoss/HushMouth");
+
+    public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
+    {
+        return false;
     }
 }

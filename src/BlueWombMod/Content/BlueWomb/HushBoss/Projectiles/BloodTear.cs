@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.Audio;
+using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -31,14 +32,14 @@ public sealed class BloodTear : ModProjectile
 
     public ref float MiscTime => ref Projectile.localAI[0];
 
+    public override void OnSpawn(IEntitySource source)
+    {
+        MiscTime = Main.rand.Next(30);
+        Projectile.scale *= Main.rand.NextFloat(0.7f, 1.2f) + Weight * 0.1f;
+    }
+
     public override void AI()
     {
-        if (MiscTime == 0)
-        {
-            MiscTime = Main.rand.Next(30);
-            Projectile.scale *= Main.rand.NextFloat(0.7f, 1.2f) + Weight * 0.1f;
-        }
-
         switch (Mode)
         {
             default:
