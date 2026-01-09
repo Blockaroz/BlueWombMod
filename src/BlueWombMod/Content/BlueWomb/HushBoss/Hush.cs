@@ -21,12 +21,13 @@ public sealed partial class Hush : ModNPC
     {
         NPCID.Sets.ShouldBeCountedAsBoss[Type] = true;
         NPCID.Sets.TeleportationImmune[Type] = true;
+        NPCID.Sets.NPCBestiaryDrawOffset.Add(Type, new NPCID.Sets.NPCBestiaryDrawModifiers() { Scale = 0.7f, Position = Vector2.UnitY * -8f });
     }
 
     public override void SetDefaults()
     {
-        NPC.width = 230;
-        NPC.height = 230;
+        NPC.width = 250;
+        NPC.height = 250;
 
         NPC.boss = true;
         NPC.lifeMax = 10000;
@@ -56,15 +57,28 @@ public sealed partial class Hush : ModNPC
     public override void OnSpawn(IEntitySource source)
     {
         SetHome(NPC.Center);
+
+        NPC.dontTakeDamage = true;
     }
 
     public override void AI()
     {
+        CreativeShockPlayers();
+
         Renderer.Reset();
 
         DoSpawn();
 
         Renderer.Update();
+    }
+
+    public void CreativeShockPlayers()
+    {
+        foreach (Player player in Main.ActivePlayers)
+        {
+            if (player.ZoneBlueWomb)
+                player.AddBuff(BuffID.NoBuilding, 30, true);
+        }
     }
 
     public override void ModifyIncomingHit(ref NPC.HitModifiers modifiers)
@@ -144,15 +158,21 @@ public sealed partial class Hush : ModNPC
         Main.instance.DrawCacheNPCsBehindNonSolidTiles.Add(index);
     }
 
+    public static RenderTarget2D DrawTarget { get; private set; }
+
+    public override void Load()
+    {
+        Main.QueueMainThreadAction(() => DrawTarget = new RenderTarget2D(Main.instance.GraphicsDevice, 800, 800));
+    }
+
+    public override void Unload()
+    {
+        DrawTarget.Dispose();
+    }
+
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
-        spriteBatch.End(out var ss);
-        spriteBatch.Begin(ss with { SortMode = SpriteSortMode.Immediate});
-
         Renderer?.Draw(spriteBatch, screenPos);
-
-        spriteBatch.End();
-        spriteBatch.Begin(ss);
 
         return false;
     }
