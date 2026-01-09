@@ -44,21 +44,11 @@ public sealed partial class LittleHush : ModNPC
         AttackPool = new WeightedAttackPool<BossState>();
     }
 
-    public override bool? CanFallThroughPlatforms() => true;
-
-    public override bool? DrawHealthBar(byte hbPosition, ref float scale, ref Vector2 position)
-    {
-        scale *= 1.1f;
-        position.Y += 10;
-        return true;
-    }
-
     public ref float Phase => ref NPC.ai[0];
     public ref float State => ref NPC.ai[1];
     public ref float Time => ref NPC.ai[2];
     public ref float MiscTime => ref NPC.ai[3];
 
-    public ref float VisualTime => ref NPC.localAI[0];
 
     public int AddBossArmorFactor { get; private set; }
 
@@ -102,19 +92,39 @@ public sealed partial class LittleHush : ModNPC
         VisualTime++;
     }
 
+    public override bool CheckDead()
+    {
+        if (NPC.life < 1 && State != (int)BossState.BigTimeHush)
+        {
+            NPC.life = 1;
+            NPC.dontTakeDamage = true;
+
+            Time = 0;
+            MiscTime = 0;
+            State = (int)BossState.BigTimeHush;
+        }
+
+        return false;
+    }
+
+    public override bool? DrawHealthBar(byte hbPosition, ref float scale, ref Vector2 position)
+    {
+        scale *= 1.1f;
+        position.Y += 10;
+        return true;
+    }
+
     public override void ModifyHoverBoundingBox(ref Rectangle boundingBox)
     {
         boundingBox = new Rectangle((int)NPC.position.X, (int)NPC.position.Y, NPC.width, NPC.height);
     }
 
-    public override Color? GetAlpha(Color drawColor)
-    {
-        return drawColor * NPC.Opacity;
-    }
-
     public static LazyAsset<Texture2D> WingsTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/BlueWomb/HushBoss/LittleHushWings");
 
+    public ref float VisualTime => ref NPC.localAI[0];
     public ref float AnimationFrame => ref NPC.localAI[1];
+    public ref float WingFrame => ref NPC.localAI[2];
+    public ref float WingFlapFrame => ref NPC.localAI[3];
 
     public enum HushyPose
     {
@@ -153,8 +163,6 @@ public sealed partial class LittleHush : ModNPC
         }
     }
 
-    public ref float WingFrame => ref NPC.localAI[2];
-    public ref float WingFlapFrame => ref NPC.localAI[3];
 
     public enum HushyWingPose
     {
@@ -205,28 +213,18 @@ public sealed partial class LittleHush : ModNPC
         }
     }
 
-    public override bool CheckDead()
-    {
-        if (NPC.life < 1 && State != (int)BossState.BigTimeHush)
-        {
-            NPC.life = 1;
-            NPC.dontTakeDamage = true;
+    private Vector2 _drawOffset = Vector2.Zero;
+    public ref Vector2 DrawOffset => ref _drawOffset;
 
-            Time = 0;
-            MiscTime = 0;
-            State = (int)BossState.BigTimeHush;
-        }
-
-        return false;
-    }
-
-    private Vector2 drawOffset;
-    public ref Vector2 DrawOffset => ref drawOffset;
-
-    private Vector2 drawScale;
-    public ref Vector2 DrawScale => ref drawScale;
+    private Vector2 _drawScale = Vector2.One;
+    public ref Vector2 DrawScale => ref _drawScale;
 
     public float FightModeStrength { get; set; }
+
+    public override Color? GetAlpha(Color drawColor)
+    {
+        return drawColor * NPC.Opacity;
+    }
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {

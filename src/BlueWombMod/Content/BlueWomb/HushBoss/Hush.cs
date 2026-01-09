@@ -42,14 +42,8 @@ public sealed partial class Hush : ModNPC
 
         Music = MusicID.Boss2;
 
-        RenderData = new HushRenderData(NPC);
-    }
-
-    public override bool? CanFallThroughPlatforms() => true;
-
-    public override bool? DrawHealthBar(byte hbPosition, ref float scale, ref Vector2 position)
-    {
-        return false;
+        Renderer = new HushRenderer(NPC);
+        NPC.hide = true;
     }
 
     public ref float Phase => ref NPC.ai[0];
@@ -61,12 +55,16 @@ public sealed partial class Hush : ModNPC
 
     public override void OnSpawn(IEntitySource source)
     {
-        
+        SetHome(NPC.Center);
     }
 
     public override void AI()
     {
-        RenderData.Reset();
+        Renderer.Reset();
+
+        DoSpawn();
+
+        Renderer.Update();
     }
 
     public override void ModifyIncomingHit(ref NPC.HitModifiers modifiers)
@@ -101,6 +99,10 @@ public sealed partial class Hush : ModNPC
 
     public override void OnKill()
     {
+        HushSystem.DownedTheHush = true;
+
+        return;
+
         bool inHardmode = Main.hardMode;
         WorldGen.StartHardmode();
 
@@ -113,18 +115,43 @@ public sealed partial class Hush : ModNPC
                 ChatHelper.BroadcastChatMessage(NetworkText.FromKey(Lang.misc[32].Key), new Color(50, 255, 130));
         }
 
-        NPC.SetEventFlagCleared(ref inHardmode, 19); // This doesn't do anything as of yet
-        HushSystem.DownedTheHush = true;
+        NPC.SetEventFlagCleared(ref inHardmode, 19); // This doesn't do anything as of yet but WoF sets it
     }
 
-    public HushRenderData RenderData;
+    public override bool? DrawHealthBar(byte hbPosition, ref float scale, ref Vector2 position)
+    {
+        return false;
+    }
+
+    public override void ModifyHoverBoundingBox(ref Rectangle boundingBox)
+    {
+        boundingBox = NPC.Hitbox;
+    }
+
+    public HushRenderer Renderer { get; private set; }
+
+    public override void FindFrame(int frameHeight)
+    {
+        if (NPC.IsABestiaryIconDummy)
+        {
+            Renderer.Reset();
+            Renderer.UpdateForDummy();
+        }
+    }
+
+    public override void DrawBehind(int index)
+    {
+        Main.instance.DrawCacheNPCsBehindNonSolidTiles.Add(index);
+    }
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
         spriteBatch.End(out var ss);
+        spriteBatch.Begin(ss with { SortMode = SpriteSortMode.Immediate});
 
-        RenderData.Draw(spriteBatch, screenPos);
+        Renderer?.Draw(spriteBatch, screenPos);
 
+        spriteBatch.End();
         spriteBatch.Begin(ss);
 
         return false;

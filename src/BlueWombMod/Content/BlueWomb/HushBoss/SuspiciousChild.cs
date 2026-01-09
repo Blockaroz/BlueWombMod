@@ -46,10 +46,9 @@ public sealed class SuspiciousChild : ModNPC
 
         NPC.velocity.X += Math.Sign(homeX - NPC.Center.X) * 0.08f * Utils.GetLerpValue(0, 20, Math.Abs(homeX - NPC.Center.X), true);
         NPC.velocity.X *= 0.97f;
+
         if (Math.Abs(NPC.velocity.X) < 0.01f)
-        {
             NPC.velocity.X = 0;
-        }
 
         int distanceToFloor = DistanceToFloor();
         NPC.velocity.Y = (distanceToFloor - 15) * 0.1f + MathF.Sin(Time / 120f * MathHelper.TwoPi) * 0.5f;
@@ -61,20 +60,19 @@ public sealed class SuspiciousChild : ModNPC
         NPCAimedTarget target = NPC.GetTargetData();
 
         if (NPC.Distance(target.Center) < 500)
-        {
             FaceTargetSpecial();
-        }
 
         if (Time % 15 == 0 && NPC.life < NPC.lifeMax)
-        {
             NPC.life = Math.Min(NPC.life + 1, NPC.lifeMax);
-        }
 
         Time++;
 
         if (Time >= 240)
         {
             Time = 0;
+
+            if (HushSystem.ActiveFight())
+                NPC.active = false;
         }
 
         Lighting.AddLight(NPC.Center, Color.SlateGray.ToVector3() * NPC.Opacity * 0.5f);

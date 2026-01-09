@@ -17,6 +17,30 @@ public sealed partial class LittleHush : ModNPC
         Angel
     }
 
+    public Vector2 HomePosition => new Point(NPC.homeTileX, NPC.homeTileY).ToWorldCoordinates();
+
+    public void SetHome(Vector2 position)
+    {
+        Point pt = position.ToTileCoordinates();
+        NPC.homeTileX = pt.X;
+        NPC.homeTileY = pt.Y;
+    }
+
+    public int DistanceToFloor()
+    {
+        int x = (int)(NPC.Center.X / 16);
+        int y = (int)(NPC.Center.Y / 16);
+        for (int i = 0; i < 100; i++)
+        {
+            if (WorldGen.SolidOrSlopedTile(x, y + i))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public int LastAttack { get; private set; }
 
     private Vector2 teleportPos;

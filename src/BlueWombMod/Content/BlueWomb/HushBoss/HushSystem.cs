@@ -7,7 +7,7 @@ namespace BlueWombMod.Content.BlueWomb.HushBoss;
 
 public sealed class HushSystem : ModSystem
 {
-    public static bool ActiveFight() => NPC.AnyNPCs(ModContent.NPCType<LittleHush>()); // or hush
+    public static bool ActiveFight() => NPC.AnyNPCs(ModContent.NPCType<LittleHush>()) || NPC.AnyNPCs(ModContent.NPCType<Hush>()); // or hush
 
     public static bool WombInWorld => wombPosition.Y > 100;
 
