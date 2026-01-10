@@ -2,11 +2,14 @@
 using BlueWombMod.Content.BlueWomb.HushBoss.Drops;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using System;
 using System.Diagnostics;
 using Terraria;
 using Terraria.Chat;
 using Terraria.DataStructures;
+using Terraria.GameContent.Bestiary;
 using Terraria.GameContent.ItemDropRules;
+using Terraria.GameContent.UI.BigProgressBar;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
@@ -35,6 +38,8 @@ public sealed partial class Hush : ModNPC
         NPC.knockBackResist = 0f;
         NPC.npcSlots = 10f;
 
+        NPC.value = Item.sellPrice(gold: 12);
+
         NPC.noTileCollide = true;
         NPC.noGravity = true;
 
@@ -47,10 +52,17 @@ public sealed partial class Hush : ModNPC
         NPC.hide = true;
     }
 
-    public ref float Phase => ref NPC.ai[0];
-    public ref float State => ref NPC.ai[1];
-    public ref float Time => ref NPC.ai[2];
-    public ref float MiscTime => ref NPC.ai[3];
+    public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
+    {
+        bestiaryEntry.AddTags(
+            BlueWombBiome.BestiaryInfoElement,
+            new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
+    }
+
+    public ref float State => ref NPC.ai[0];
+    public ref float Time => ref NPC.ai[1];
+    public ref float MiscTime => ref NPC.ai[2];
+    public ref float ExtraAI => ref NPC.ai[3];
 
     public ref float VisualTime => ref NPC.localAI[0];
 
@@ -66,10 +78,64 @@ public sealed partial class Hush : ModNPC
         CreativeShockPlayers();
 
         Renderer.Reset();
+        float wobble = Math.Abs(MathF.Sin(Time * 0.15f));
+        Renderer.DrawScale = new Vector2(1f - wobble * 0.02f, 1f + wobble * 0.02f);
 
-        DoSpawn();
+        DoCurrentState();
 
         Renderer.Update();
+    }
+
+    public override bool CheckDead()
+    {
+        if (NPC.life <= 0 && State != (int)BossState.Death)
+        {
+            NPC.life = 1;
+            NPC.dontTakeDamage = true;
+            State = (int)BossState.Death;
+
+            Time = 0;
+            MiscTime = 0;
+
+            NPC.BossBar = new NeverValidProgressBar();
+            return false;
+        }
+
+        return true;
+    }
+
+    public void BuildLootBox()
+    {
+        const int radius = 6;
+        for (int j = -radius; j < radius; j++)
+        {
+            for (int i = -radius; i < radius; i++)
+            {
+                float dist = MathF.Sqrt(i * i + j * j);
+                if (dist < radius && dist >= radius - 1.5)
+                {
+                    Point tilePos = NPC.Center.ToTileCoordinates() + new Point(i, j);
+                    WorldGen.PlaceTile(tilePos.X, tilePos.Y, TileID.Obsidian, mute: true);
+                }
+            }
+        }
+    }
+
+    public void BreakRadius()
+    {
+        const int radius = 250 / 16;
+        for (int j = -radius; j < radius; j++)
+        {
+            for (int i = -radius; i < radius; i++)
+            {
+                float dist = MathF.Sqrt(i * i + j * j);
+                if (dist < radius)
+                {
+                    Point tilePos = NPC.Center.ToTileCoordinates() + new Point(i, j);
+                    WorldGen.KillTile(tilePos.X, tilePos.Y);
+                }
+            }
+        }
     }
 
     public void CreativeShockPlayers()
@@ -77,7 +143,10 @@ public sealed partial class Hush : ModNPC
         foreach (Player player in Main.ActivePlayers)
         {
             if (player.ZoneBlueWomb)
-                player.AddBuff(BuffID.NoBuilding, 30, true);
+            {
+                player.AddBuff(BuffID.NoBuilding, 60, true);
+                player.noBuilding = true;
+            }
         }
     }
 

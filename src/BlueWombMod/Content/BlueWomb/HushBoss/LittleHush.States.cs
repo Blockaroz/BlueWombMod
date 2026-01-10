@@ -1,4 +1,5 @@
 ﻿using BlueWombMod.Common.Utilities;
+using BlueWombMod.Content.BlueWomb.HushBoss.Projectiles;
 using Microsoft.Xna.Framework;
 using System;
 using Terraria;
@@ -187,9 +188,11 @@ public sealed partial class LittleHush : ModNPC
         {
             NPC.active = false;
 
+            KillMyProjectiles();
+
             if (Main.netMode != NetmodeID.MultiplayerClient)
             {
-                NPC.NewNPCDirect(NPC.GetSource_NaturalSpawn(), HushSystem.WombPosition.ToWorldCoordinates() - new Vector2(0, HushSystem.WOMB_RADIUS / 2), ModContent.NPCType<Hush>());
+                NPC.NewNPCDirect(NPC.GetSource_NaturalSpawn(), HushSystem.WombPosition.ToWorldCoordinates() - new Vector2(0, HushSystem.WOMB_RADIUS * 4.5f), ModContent.NPCType<Hush>());
             }
         }
     }
@@ -437,6 +440,19 @@ public sealed partial class LittleHush : ModNPC
                 {
                     State = (int)AttackPool.PickFromTop(3, 0.15);
                 }
+            }
+        }
+    }
+
+    private void KillMyProjectiles()
+    {
+        foreach (Projectile projectile in Main.ActiveProjectiles)
+        {
+            if (projectile.type == ModContent.ProjectileType<BloodTear>() || 
+                projectile.type == ModContent.ProjectileType<HolyWaterTear>() || 
+                projectile.type == ModContent.ProjectileType<SpoonBenderTear>())
+            {
+                projectile.Kill();
             }
         }
     }

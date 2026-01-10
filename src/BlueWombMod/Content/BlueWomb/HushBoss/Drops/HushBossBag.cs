@@ -45,6 +45,6 @@ public sealed class HushBossBag : ModItem
             ItemID.FireWhip
             ));
 
-        itemLoot.Add(ItemDropRule.Coins(Item.sellPrice(gold: 8), false));
+        itemLoot.Add(ItemDropRule.CoinsBasedOnNPCValue(ModContent.NPCType<Hush>()));
     }
 }

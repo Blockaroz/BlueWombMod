@@ -1,5 +1,5 @@
 ﻿using BlueWombMod.Common.Graphics;
-using BlueWombMod.Content.BlueWomb.HushBoss.Minions.Flies;
+using BlueWombMod.Content.BlueWomb.HushBoss.Minions;
 using BlueWombMod.Content.BlueWomb.HushBoss.Projectiles;
 using BlueWombMod.Content.Particles;
 using Microsoft.Xna.Framework;

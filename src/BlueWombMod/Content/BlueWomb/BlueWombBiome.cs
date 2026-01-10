@@ -3,6 +3,7 @@ using BlueWombMod.Content.BlueWomb.Tiles;
 using Microsoft.Xna.Framework;
 using System;
 using Terraria;
+using Terraria.GameContent.Bestiary;
 using Terraria.Graphics.Light;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -11,11 +12,11 @@ namespace BlueWombMod.Content.BlueWomb;
 
 public sealed class BlueWombBiome : ModBiome
 {
-    public override Color? BackgroundColor => Color.Black;
-
     public override SceneEffectPriority Priority => SceneEffectPriority.BiomeHigh;
 
     public override int Music => MusicID.OtherworldlyUGCrimson;
+
+    public static ModBiomeBestiaryInfoElement BestiaryInfoElement => ModContent.GetInstance<BlueWombBiome>().ModBiomeBestiaryInfoElement;
 
     public override bool IsBiomeActive(Player player)
     {
@@ -62,8 +63,8 @@ public sealed class BlueWombDarknessSystem : ModSystem
         {
             float i = x - HushSystem.WombPosition.X;
             float j = y - HushSystem.WombPosition.Y;
-            float distance = MathF.Sqrt(i * i + j * j);
-            outputColor += Vector3.One * Utils.GetLerpValue(HushSystem.WOMB_RADIUS, 0, distance, true) * MathF.Sqrt(lightFade);
+            float distance = Utils.GetLerpValue(HushSystem.WOMB_RADIUS, 0, MathF.Sqrt(i * i + j * j), true);
+            outputColor += Vector3.One * distance * MathF.Sqrt(lightFade);
         }
     }
 

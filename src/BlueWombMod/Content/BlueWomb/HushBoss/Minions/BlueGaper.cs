@@ -5,6 +5,7 @@ using Terraria;
 using Terraria.Audio;
 using Terraria.DataStructures;
 using Terraria.GameContent;
+using Terraria.GameContent.Bestiary;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -25,6 +26,13 @@ public sealed class BlueGaper : ModNPC
         NPC.DeathSound = SoundID.NPCDeath1;
 
         NPC.damage = 50;
+    }
+
+    public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
+    {
+        bestiaryEntry.AddTags(
+            BlueWombBiome.BestiaryInfoElement,
+            new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
     }
 
     public ref float Time => ref NPC.ai[0];

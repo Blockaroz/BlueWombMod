@@ -1,4 +1,5 @@
 ﻿using BlueWombMod.Common.Graphics;
+using BlueWombMod.Content.BlueWomb;
 using BlueWombMod.Content.BlueWomb.HushBoss.Projectiles;
 using BlueWombMod.Content.Particles;
 using Microsoft.Xna.Framework;
@@ -8,10 +9,11 @@ using Terraria;
 using Terraria.Audio;
 using Terraria.DataStructures;
 using Terraria.GameContent;
+using Terraria.GameContent.Bestiary;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace BlueWombMod.Content.BlueWomb.HushBoss.Minions.Flies;
+namespace BlueWombMod.Content.BlueWomb.HushBoss.Minions;
 
 public sealed class PooterFly : ModNPC
 {
@@ -29,6 +31,13 @@ public sealed class PooterFly : ModNPC
         NPC.DeathSound = SoundID.NPCDeath11;
     }
 
+    public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
+    {
+        bestiaryEntry.AddTags(
+            BlueWombBiome.BestiaryInfoElement,
+            new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
+    }
+
     public ref float ShootTime => ref NPC.ai[0];
     public ref float Time => ref NPC.ai[1];
     public ref float SpawnTime => ref NPC.ai[2];
@@ -38,11 +47,6 @@ public sealed class PooterFly : ModNPC
         NPC.scale *= Main.rand.NextFloat(0.9f, 1.25f);
         NPC.lifeMax = (int)(NPC.lifeMax * NPC.scale);
         NPC.life = NPC.lifeMax;
-    }
-
-    public override bool? CanFallThroughPlatforms()
-    {
-        return true;
     }
 
     public override void AI()
@@ -142,6 +146,11 @@ public sealed class PooterFly : ModNPC
     public override void OnHitPlayer(Player target, Player.HurtInfo hurtInfo)
     {
         Time = Main.rand.Next(90, 150);
+    }
+
+    public override bool? CanFallThroughPlatforms()
+    {
+        return true;
     }
 
     public override void ModifyHoverBoundingBox(ref Rectangle boundingBox)

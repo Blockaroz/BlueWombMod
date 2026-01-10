@@ -46,6 +46,12 @@ public sealed class DeadTissueBlockUnsafe : ModTile
         AddMapEntry(new Color(63, 81, 114));
     }
 
+    public override bool IsTileBiomeSightable(int i, int j, ref Color sightColor)
+    {
+        sightColor = Color.CornflowerBlue;
+        return true;
+    }
+
     public override bool CanDrop(int i, int j)
     {
         if (Main.netMode != NetmodeID.MultiplayerClient)

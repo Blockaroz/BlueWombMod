@@ -1,14 +1,16 @@
 ﻿using BlueWombMod.Common.Graphics;
+using BlueWombMod.Content.BlueWomb;
 using BlueWombMod.Content.Particles;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.GameContent;
+using Terraria.GameContent.Bestiary;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace BlueWombMod.Content.BlueWomb.HushBoss.Minions.Flies;
+namespace BlueWombMod.Content.BlueWomb.HushBoss.Minions;
 
 public sealed class AttackFly : ModNPC
 {
@@ -27,6 +29,13 @@ public sealed class AttackFly : ModNPC
         NPC.damage = 30;
     }
 
+    public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
+    {
+        bestiaryEntry.AddTags(
+            BlueWombBiome.BestiaryInfoElement,
+            new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
+    }
+
     public const int STATE_ATTACK = 0;
     public const int STATE_PASSIVE = 1;
 
@@ -41,11 +50,6 @@ public sealed class AttackFly : ModNPC
         NPC.scale *= Main.rand.NextFloat(0.75f, 1.1f);
         NPC.lifeMax = (int)(NPC.lifeMax * NPC.scale);
         NPC.life = NPC.lifeMax;
-    }
-
-    public override bool? CanFallThroughPlatforms()
-    {
-        return true;
     }
 
     public override void AI()
@@ -144,6 +148,11 @@ public sealed class AttackFly : ModNPC
     {
         Time = Main.rand.Next(90, 150);
         Passive = true;
+    }
+
+    public override bool? CanFallThroughPlatforms()
+    {
+        return true;
     }
 
     public override void ModifyHoverBoundingBox(ref Rectangle boundingBox)

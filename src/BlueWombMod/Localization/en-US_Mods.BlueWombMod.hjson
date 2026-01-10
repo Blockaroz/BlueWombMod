@@ -50,6 +50,7 @@ Projectiles: {
 	BloodTear.DisplayName: Blood Tear
 	SpoonBenderTear.DisplayName: Spoon Bender Tear
 	ContinuumTear.DisplayName: Continuum Tear
+	GlowingEyeTear.DisplayName: Glowing Eye Tear
 }
 
 NPCs: {
@@ -59,4 +60,5 @@ NPCs: {
 	LittleHush.DisplayName: ???
 	Hush.DisplayName: The Hush
 	BlueGaper.DisplayName: Blue Gaper
+	HushFly.DisplayName: Hush Fly
 }

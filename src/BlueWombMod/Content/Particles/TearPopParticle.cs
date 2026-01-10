@@ -50,7 +50,7 @@ public class TearPopParticle : BaseParticle<TearPopParticle>
     {
         Texture2D texture = TextureAsset.Value;
         Rectangle frame = texture.Frame(1, 7, 0, (int)((float)TimeLeft / MaxTime * 7));
-        Color color = Lighting.GetColor(Position.ToTileCoordinates()) * 0.9f;
+        Color color = Lighting.GetColor(Position.ToTileCoordinates()) * 0.4f;
 
         SpriteEffects flip = Flip ? SpriteEffects.FlipHorizontally : 0;
 

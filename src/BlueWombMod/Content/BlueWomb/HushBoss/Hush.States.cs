@@ -1,8 +1,11 @@
-﻿using BlueWombMod.Content.BlueWomb.Tiles;
+﻿using BlueWombMod.Common.Graphics.Camera;
+using BlueWombMod.Content.BlueWomb.HushBoss.Projectiles;
+using BlueWombMod.Content.BlueWomb.Tiles;
 using Microsoft.Xna.Framework;
 using System;
 using Terraria;
 using Terraria.Audio;
+using Terraria.GameContent.Events;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -19,23 +22,6 @@ public sealed partial class Hush : ModNPC
         NPC.homeTileY = pt.Y;
     }
 
-    public void BreakRadius()
-    {
-        const int radius = 250 / 16;
-        for (int j = -radius; j < radius; j++)
-        {
-            for (int i = -radius; i < radius; i++)
-            {
-                float dist = MathF.Sqrt(i * i + j * j);
-                if (dist < radius)
-                {
-                    Point tilePos = NPC.Center.ToTileCoordinates() + new Point(i, j);
-                    WorldGen.KillTile(tilePos.X, tilePos.Y);
-                }
-            }
-        }
-    }
-
     public void DoSpawn()
     {
         const int PushTime = 95;
@@ -44,13 +30,15 @@ public sealed partial class Hush : ModNPC
 
         NPC.dontTakeDamage = true;
 
-        if (Time == PushTime)
-        {
-            // BreakRadius();
-        }
-
         if (Time < PushTime)
         {
+            if (Time == 0)
+            {
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 2f, TotalTime, 2, "HushEntrance"));
+
+                // Roar Sound
+            }
+
             float pushProgress = Utils.GetLerpValue(0, PushTime, Time, true);
             float sqrtProgress = MathF.Sqrt(pushProgress);
             Renderer.HideMound = true;
@@ -73,11 +61,14 @@ public sealed partial class Hush : ModNPC
             Renderer.DrawScale = new Vector2(1f - bounceOut * 0.15f, 1f + bounceOut * 0.2f) * (0.4f + 0.6f * MathF.Cbrt(Utils.GetLerpValue(PushTime, PushTime + BounceOutTime / 2f, Time, true)));
             Renderer.Face.Scale *= 1f + MathF.Sqrt(1f - Utils.GetLerpValue(PushTime, PushTime + BounceOutTime / 3f, Time, true)) * 0.25f;
             Renderer.Face.Offset.Y = bounceOut * 12;
-            Renderer.Face.Rotation = MathF.Sin(Time * 0.5f) * 0.1f * Utils.GetLerpValue(PushTime + BounceOutTime / 1.5f, PushTime + BounceOutTime / 3f, Time, true);
 
             if (Time == PushTime)
             {
+                // BreakRadius();
 
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "HushEntrance"));
+
+                // Break Wall Sound
             }
         }
 
@@ -85,11 +76,136 @@ public sealed partial class Hush : ModNPC
 
         Time++;
 
-        if (Time >= TotalTime + 121)
+        if (Time >= TotalTime + 21)
         {
             NPC.dontTakeDamage = false;
 
             Time = 0;
+            State = (int)BossState.Idle;
+        }
+    }
+
+    public void DoDespawn()
+    {
+        const int SinkTime = 20;
+        const int FadeTime = 90;
+        const int TotalTime = SinkTime + FadeTime;
+
+        NPC.dontTakeDamage = true;
+
+        if (Time < SinkTime)
+        {
+            float sinkTime = Utils.GetLerpValue(0, SinkTime, Time, true);
+
+            Renderer.DrawScale = new Vector2(1f - MathF.Sin(sinkTime * MathHelper.Pi) * 0.2f, 1f + MathF.Sin(sinkTime * MathHelper.Pi) * 0.2f) * Utils.GetLerpValue(1.8f, 0.7f, sinkTime, true);
+            Renderer.Face.Scale *= 1f + Utils.GetLerpValue(0.7f, 1.8f, sinkTime, true) * 0.5f;
+            Renderer.Blink();
+        }
+        else
+        {
+            Renderer.HideMound = true;
+
+            float bounceInTime = Utils.GetLerpValue(SinkTime, SinkTime + FadeTime / 4f, Time, true);
+
+            Renderer.DrawScale = new Vector2(1f + MathF.Sqrt(1f - bounceInTime) * 0.2f, 1f - MathF.Sqrt(1f - bounceInTime) * 0.2f);
+            Renderer.DrawOffset.X = MathF.Sin(Time * 1.75f) * 6f * bounceInTime;
+
+            ScreenDarkness.frontColor = Color.Black;
+            ScreenDarkness.screenObstruction = Utils.GetLerpValue(SinkTime + FadeTime / 3f, TotalTime, Time, true);
+
+            if (Time > SinkTime + FadeTime / 2f)
+                Renderer.Blink();
+        }
+
+        Time++;
+
+        if (Time >= TotalTime)
+        {
+            NPC.active = false;
+        }
+    }
+
+    public void DoDeath()
+    {
+        const int RoarTime = 24;
+        const int FadeTime = 120;
+        const int TotalTime = RoarTime + FadeTime;
+
+        NPC.dontTakeDamage = true;
+
+        if (Time == 0)
+        {
+            KillMyProjectiles();
+
+            Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 5f, TotalTime, 3, "HushDeath"));
+        }
+
+        if (Time < RoarTime)
+        {
+            Renderer.EyeStateLeft = HushRenderer.EyeState.Closed;
+            Renderer.EyeLeft.Offset.Y -= 7f;
+            Renderer.EyeLeft.Rotation = 0.2f;
+            Renderer.EyeStateRight = HushRenderer.EyeState.Closed;
+            Renderer.EyeRight.Offset.Y -= 7f;
+            Renderer.EyeRight.Rotation = -0.2f;
+            Renderer.Blink();
+
+            float squeezeProgress = MathF.Sqrt(Utils.GetLerpValue(0, RoarTime, Time, true));
+            Renderer.Mouth.Scale = new Vector2(1.1f + 0.2f * squeezeProgress, 0.7f - 0.2f * squeezeProgress);
+
+            Renderer.DrawScale = new Vector2(1f + squeezeProgress * 0.2f, 1f - squeezeProgress * 0.1f);
+        }
+        else
+        {
+            if (Time == RoarTime)
+            {
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 8f, FadeTime, 2, "HushDeath"));
+            }
+
+            float fadeProgress = Utils.GetLerpValue(TotalTime - FadeTime / 3f, TotalTime, Time, true);
+            MoonlordDeathDrama.RequestLight(fadeProgress, NPC.Center);
+
+            float bounceUpProgress = MathF.Sin(Utils.GetLerpValue(RoarTime, RoarTime + FadeTime / 5f, Time, true) * MathHelper.Pi);
+            Renderer.DrawScale = Vector2.Lerp(new Vector2(1.2f, 0.9f), new Vector2(1f - bounceUpProgress * 0.15f, 1f + bounceUpProgress * 0.2f), Utils.GetLerpValue(RoarTime, RoarTime + 5, Time, true));
+
+            // TODO: mouth frame
+            Renderer.Mouth.Scale = new Vector2(1f, 1.2f);
+        }
+
+        Renderer.Face.Offset.Y -= 40 * Utils.GetLerpValue(RoarTime / 2f, RoarTime + FadeTime / 3f, Time, true);
+        Renderer.DrawOffset.X = MathF.Sin(Time * 1.7f) * 4f * Utils.GetLerpValue(RoarTime / 2f, RoarTime + FadeTime / 5f, Time, true);
+        Renderer.DrawOffset.Y += (Renderer.DrawScale.Y - 1f) * 10;
+
+        Time++;
+
+        if (Time >= TotalTime + 10)
+        {
+            NPC.life = 0;
+            NPC.checkDead();
+
+            //BreakRadius();
+            //BuildLootBox();
+        }
+    }
+
+    public void PickAttack()
+    {
+        if (CheckForTarget())
+        {
+            State = (int)BossState.EyeRings;
+        }
+    }
+
+    private void KillMyProjectiles()
+    {
+        foreach (Projectile projectile in Main.ActiveProjectiles)
+        {
+            if (projectile.type == ModContent.ProjectileType<GlowingEyeTear>() ||
+                projectile.type == ModContent.ProjectileType<ContinuumTear>() ||
+                projectile.type == ModContent.ProjectileType<BloodTear>())
+            {
+                projectile.Kill();
+            }
         }
     }
 }
