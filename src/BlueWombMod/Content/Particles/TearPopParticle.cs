@@ -16,8 +16,9 @@ public class TearPopParticle : BaseParticle<TearPopParticle>
     public int MaxTime;
     public float Scale;
     private bool Flip;
+    public float Rotation;
 
-    public static TearPopParticle RequestNew(Vector2 position, int timeLeft = 20, float scale = 1f)
+    public static TearPopParticle RequestNew(Vector2 position, int timeLeft = 20, float scale = 1f, float rotation = 0f)
     {
         var pop = Pool.RequestParticle();
         pop.Position = position;
@@ -25,6 +26,7 @@ public class TearPopParticle : BaseParticle<TearPopParticle>
         pop.MaxTime = timeLeft;
         pop.Scale = scale;
         pop.Flip = Main.rand.NextBool();
+        pop.Rotation = rotation;
         return pop;
     }
 
@@ -56,8 +58,8 @@ public class TearPopParticle : BaseParticle<TearPopParticle>
 
         Texture2D glow = Assets.Textures.GlowBig.Value;
         float fadeOut = Utils.GetLerpValue(MaxTime, 0, TimeLeft, true);
-        spritebatch.Draw(glow, Position + settings.AnchorPosition, glow.Frame(), Color.White with { A = 0 } * 0.15f * fadeOut, 0, glow.Size() / 2, Scale * 0.12f, 0, 0);
+        spritebatch.Draw(glow, Position + settings.AnchorPosition, glow.Frame(), Color.White with { A = 0 } * 0.15f * fadeOut, Rotation, glow.Size() / 2, Scale * 0.12f, 0, 0);
 
-        spritebatch.Draw(texture, Position + settings.AnchorPosition, frame, color, 0f, frame.Size() / 2, Scale, flip, 0);
+        spritebatch.Draw(texture, Position + settings.AnchorPosition, frame, color, Rotation, frame.Size() / 2, Scale, flip, 0);
     }
 }

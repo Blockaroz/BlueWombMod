@@ -93,6 +93,11 @@ public sealed partial class LittleHush : ModNPC
         VisualTime++;
     }
 
+    public override bool CheckActive()
+    {
+        return false;
+    }
+
     public override bool CheckDead()
     {
         if (NPC.life < 1 && State != (int)BossState.BigTimeHush)

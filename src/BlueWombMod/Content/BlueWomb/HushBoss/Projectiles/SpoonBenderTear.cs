@@ -38,12 +38,12 @@ public sealed class SpoonBenderTear : ModProjectile
         if (HostIndex > 0 && HostIndex <= Main.npc.Length)
         {
             NPC npc = Main.npc[(int)HostIndex - 1];
-            if (npc.active)
+            if (npc.active && npc.life > 5 && !npc.friendly)
             {
                 NPCAimedTarget target = npc.GetTargetData();
                 if (!target.Invalid)
                 {
-                    Projectile.velocity += Projectile.DirectionTo(target.Center) * 0.25f * Utils.GetLerpValue(0, 20, Time, true) * Utils.GetLerpValue(0, 100, Projectile.timeLeft, true);
+                    Projectile.velocity += Projectile.DirectionTo(target.Center) * 0.25f * Utils.GetLerpValue(0, 30, Time, true) * Utils.GetLerpValue(0, 100, Projectile.timeLeft, true);
                 }
             }
         }

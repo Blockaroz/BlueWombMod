@@ -15,16 +15,16 @@ public sealed class HushRenderer(NPC nPC)
 
     public bool HideFace { get; set; }
 
-    public bool InGround { get; set; }
-
     public bool HideMound { get; set; }
 
-    public enum EyeAnimationState
+    public AnimationState MoundState { get; set; }
+
+    public enum AnimationState
     {
-        Open,
-        Squint,
-        Closed,
-        Glowing
+        Normal,
+        InGround,
+        InGroundNoFace,
+        GaperTunnel
     }
 
     public enum MouthAnimationState
@@ -32,6 +32,14 @@ public sealed class HushRenderer(NPC nPC)
         Normal,
         Wide,
         Chewing
+    }
+
+    public enum EyeAnimationState
+    {
+        Open,
+        Squint,
+        Closed,
+        Glowing
     }
 
     public struct Transformation()
@@ -66,8 +74,8 @@ public sealed class HushRenderer(NPC nPC)
 
     public void Reset()
     {
+        MoundState = AnimationState.Normal;
         HideFace = false;
-        InGround = false;
         HideMound = false;
 
         Body = new Transformation();
@@ -88,6 +96,7 @@ public sealed class HushRenderer(NPC nPC)
     public void Update()
     {
         AnimateEyes();
+        AnimateMound();
     }
 
     public void UpdateForDummy()
@@ -185,6 +194,37 @@ public sealed class HushRenderer(NPC nPC)
             EyeStateRight = EyeAnimationState.Glowing;
     }
 
+    private int sinkTime;
+
+    public void SinkDown(bool face = true)
+    {
+        MoundState = face ? AnimationState.InGround : AnimationState.InGroundNoFace;
+    }
+
+    private void AnimateMound()
+    {
+        const int InGroundTime = 18;
+
+        if (MoundState is AnimationState.InGround or AnimationState.InGroundNoFace)
+        {
+            if (sinkTime < InGroundTime)
+                sinkTime++;
+
+            float bounceIntoFloor = MathF.Sin(Utils.GetLerpValue(0, InGroundTime / 2, sinkTime, true) * 2.5f + (MathHelper.Pi - 2.5f));
+            DrawScale = new Vector2(1f + 0.2f * bounceIntoFloor, 1f - bounceIntoFloor * 0.1f);
+            DrawOffset.Y = (DrawScale.Y - 1f) * -80f;
+        }
+        else if (sinkTime > 0)
+        {
+            sinkTime--;
+
+            float bounceOutOfFloor = MathF.Sqrt(Math.Abs(MathF.Sin(Utils.GetLerpValue(InGroundTime, 0, sinkTime, true) * 3f)));
+            DrawScale = new Vector2(1f - 0.25f * bounceOutOfFloor, 1f + bounceOutOfFloor * 0.2f);
+            DrawOffset.Y = bounceOutOfFloor * -24f;
+            Face.Offset.Y += MathF.Sqrt(Utils.GetLerpValue(0, InGroundTime, sinkTime, true)) * -40f;
+        }
+    }
+
     public void SetIndependentScales(Vector2 scale)
     {
         EyeLeft.Scale *= scale;
@@ -201,6 +241,7 @@ public sealed class HushRenderer(NPC nPC)
         if (NPC.IsABestiaryIconDummy)
             return Vector3.One;
 
+        // Dust.QuickDust(position, Color.Red);
         return Lighting.GetColor(position.ToTileCoordinates()).ToVector3();
     }
 
@@ -236,7 +277,7 @@ public sealed class HushRenderer(NPC nPC)
 
         float faceDist = Utils.GetLerpValue(20, 120, Face.Offset.Length(), true);
 
-        Vector2 mouthPos = center + Face.Offset * 0.75f * faceScale + ((Mouth.Offset + new Vector2(0, 50)) * faceScale).RotatedBy(faceRotation);
+        Vector2 mouthPos = center + Face.Offset * 0.75f * faceScale + ((Mouth.Offset + new Vector2(0, 48)) * faceScale).RotatedBy(faceRotation);
         var mouthScale = faceScale * Mouth.Scale * new Vector2(1f, 1f - faceDist);
 
         Vector2 eyeLeftPos = center + Face.Offset * faceScale + ((EyeLeft.Offset + new Vector2(-74, -16)) * faceScale).RotatedBy(faceRotation);
@@ -257,12 +298,12 @@ public sealed class HushRenderer(NPC nPC)
 
             if (!HideMound)
             {
-                Rectangle frame = texture.Frame();
+                Rectangle frame = texture.Frame(1, 4, 0, (int)MoundState);
 
-                spriteBatch.Draw(texture, center, frame, Color.White, NPC.rotation, frame.Size() / 2, 1f, 0, 0);
+                spriteBatch.Draw(texture, center, frame, Color.White, 0, frame.Size() / 2, 1f, 0, 0);
             }
 
-            if (!HideFace)
+            if (!HideFace && MoundState == AnimationState.Normal)
             {
                 var mouthFrame = mouthTexture.Frame(1, 3, 0, (int)MouthState);
                 spriteBatch.Draw(mouthTexture, mouthPos, mouthFrame, Color.White, faceRotation + Mouth.Rotation, mouthFrame.Size() / 2, mouthScale, 0, 0);
@@ -275,9 +316,9 @@ public sealed class HushRenderer(NPC nPC)
 
                 spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftFrame, Color.White, faceRotation + eyeLeftRot, eyeLeftFrame.Size() / 2, eyeLeftScale, 0, 0);
                 spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightFrame, Color.White, faceRotation + eyeRightRot, eyeRightFrame.Size() / 2, eyeRightScale, 0, 0);
-
-                spriteBatch.End();
             }
+
+            spriteBatch.End();
         }
 
         spriteBatch.GraphicsDevice.RasterizerState = rasterizerState;
@@ -294,11 +335,11 @@ public sealed class HushRenderer(NPC nPC)
 
         var scale = NPC.scale * DrawScale;
 
-        ApplyLight(NPC.Center + DrawOffset, Hush.DrawTarget.Width, Hush.DrawTarget.Height, NPC.rotation, scale * 0.5f);
+        ApplyLight(NPC.Center + DrawOffset, Hush.DrawTarget.Width, Hush.DrawTarget.Height, NPC.rotation, scale * 0.562f);
 
         spriteBatch.Draw(Hush.DrawTarget, NPC.Center + DrawOffset - screenPos, Hush.DrawTarget.Frame(), baseColor * NPC.Opacity, NPC.rotation, Hush.DrawTarget.Size() / 2, scale * 0.5f, 0, 0);
 
-        if (!HideFace)
+        if (!HideFace && MoundState == AnimationState.Normal)
         {
             Main.pixelShader.CurrentTechnique.Passes[0].Apply();
 

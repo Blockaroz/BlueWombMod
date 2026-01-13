@@ -83,6 +83,7 @@ public sealed class BlueWombDarknessSystem : ModSystem
 
         if (lightFade > 0f)
         {
+            Main.GraveyardVisualIntensity = Math.Max(0.2f * lightFade, Main.GraveyardVisualIntensity);
             scale *= 1f - lightFade * 0.133f * (1f + MathF.Sin(Main.GlobalTimeWrappedHourly) * 0.2f);
         }
     }

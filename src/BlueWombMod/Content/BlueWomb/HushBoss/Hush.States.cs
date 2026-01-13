@@ -35,8 +35,9 @@ public sealed partial class Hush : ModNPC
         {
             if (Time == 0)
             {
-                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 5f, TotalTime, 2, uniqueID: "HushEntrance"));
-                Main.instance.CameraModifiers.Add(new SpotFocusModifier(NPC.Center, PushTime, BounceOutTime));
+                Vector2 epicenter = Vector2.Lerp(NPC.Center, HushSystem.WombPosition.ToWorldCoordinates(), 0.33f);
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(epicenter, Vector2.Zero, 5f, TotalTime, 2, uniqueID: "HushEntrance"));
+                Main.instance.CameraModifiers.Add(new SpotFocusModifier(epicenter, PushTime, BounceOutTime));
 
                 // Roar Sound
             }
@@ -78,7 +79,7 @@ public sealed partial class Hush : ModNPC
 
         Time++;
 
-        if (Time >= TotalTime + 21)
+        if (Time >= TotalTime + 61)
         {
             NPC.dontTakeDamage = false;
 
@@ -200,14 +201,60 @@ public sealed partial class Hush : ModNPC
         AttackPool.Clear();
         AttackPool.Add(BossState.EyeRings, 0.5);
         AttackPool.Add(BossState.MouthSalvos, 0.5);
-        AttackPool.Add(BossState.LineVolleys, 0.5);
+        AttackPool.Add(BossState.HomingVolleys, 0.2);
+        AttackPool.Add(BossState.FlyWheels, 0.5, FlyWheelCondition);
     }
 
     public void PickAttack()
     {
-        if (CheckForTarget())
+        Time = 0;
+        MiscTime = 0;
+
+        if (CheckPhaseChangeNeeded())
         {
+            State = (int)BossState.PhaseChange;
+            return;
+        }
+
+        if (CheckForTarget())
             State = (int)AttackPool.PickFromTop(3, 0.2);
+        else
+            State = (int)BossState.Despawning;
+
+    }
+
+    private bool CheckPhaseChangeNeeded()
+    {
+        if (State == (int)BossState.PhaseChange)
+            return false;
+
+        float percent = NPC.GetLifePercent();
+        switch (Phase)
+        {
+            default:
+            case 0:
+                return percent < 0.8f;
+            case 1:
+                return percent < 0.6f;
+            case 2:
+                return percent < 0.4f;
+            case 3:
+                return percent < 0.2f;
+        }
+    }
+
+    public void DoPhaseChange()
+    {
+        switch (Phase)
+        {
+            default:
+                // How did you get here?
+                State = (int)BossState.Idle;
+                break;
+            case 0:
+                Phase++;
+                State = (int)BossState.SinkRelocate;
+                break;
         }
     }
 
@@ -217,6 +264,7 @@ public sealed partial class Hush : ModNPC
         {
             if (projectile.type == ModContent.ProjectileType<GlowingEyeTear>() ||
                 projectile.type == ModContent.ProjectileType<ContinuumTear>() ||
+                projectile.type == ModContent.ProjectileType<SpoonBenderTear>() ||
                 projectile.type == ModContent.ProjectileType<BloodTear>())
             {
                 projectile.Kill();

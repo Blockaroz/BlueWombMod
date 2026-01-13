@@ -4,7 +4,14 @@ using Terraria.Graphics.CameraModifiers;
 
 namespace BlueWombMod.Common.Graphics.Camera;
 
-public class ContinuousShakeModifier(Vector2 center, Vector2 bias, float strength, int maxTime, int frequency = 4, string uniqueID = "", float fallOff = 10000) : ICameraModifier
+public class ContinuousShakeModifier(
+    Vector2 center,
+    Vector2 bias,
+    float strength,
+    int maxTime,
+    int frequency = 4,
+    string uniqueID = "",
+    float fallOff = 10000) : ICameraModifier
 {
     private int time = maxTime;
     private Vector2 offset;

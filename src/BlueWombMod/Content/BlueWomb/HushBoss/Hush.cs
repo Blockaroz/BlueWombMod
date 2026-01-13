@@ -64,7 +64,7 @@ public sealed partial class Hush : ModNPC
     public ref float State => ref NPC.ai[0];
     public ref float Time => ref NPC.ai[1];
     public ref float MiscTime => ref NPC.ai[2];
-    public ref float ExtraAI => ref NPC.ai[3];
+    public ref float Phase => ref NPC.ai[3];
 
     public ref float VisualTime => ref NPC.localAI[0];
 
@@ -80,10 +80,18 @@ public sealed partial class Hush : ModNPC
         CreativeShockPlayers();
 
         Renderer.Reset();
-        float wobble = Math.Abs(MathF.Sin(Time * 0.15f));
+        float wobble = Math.Abs(MathF.Sin(MiscTime * 0.15f));
         Renderer.DrawScale = new Vector2(1f - wobble * 0.02f, 1f + wobble * 0.02f);
 
         DoCurrentState();
+
+        if (CheckPhaseChangeNeeded())
+        {
+            NPC.dontTakeDamage = true;
+            EndAttack();
+        }
+
+        MiscTime++;
 
         if (HitTime > 0)
         {
@@ -93,6 +101,11 @@ public sealed partial class Hush : ModNPC
         }
 
         Renderer.Update();
+    }
+
+    public override bool CheckActive()
+    {
+        return false;
     }
 
     public override bool CheckDead()
