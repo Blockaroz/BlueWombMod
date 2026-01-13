@@ -294,7 +294,7 @@ public sealed class HushRenderer(NPC nPC)
 
         using (new RenderTargetScope(Hush.DrawTarget, clear: true))
         {
-            spriteBatch.Begin(ss with { SortMode = SpriteSortMode.Immediate, Rasterizer = RasterizerState.CullNone, TransformMatrix = Matrix.CreateScale(2f) });
+            spriteBatch.Begin(ss with { SortMode = SpriteSortMode.Immediate, SamplerState = SamplerState.AnisotropicClamp, Rasterizer = RasterizerState.CullNone, TransformMatrix = Matrix.CreateScale(2f) });
 
             if (!HideMound)
             {

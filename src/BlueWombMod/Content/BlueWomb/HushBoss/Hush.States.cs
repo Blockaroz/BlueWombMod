@@ -14,6 +14,72 @@ namespace BlueWombMod.Content.BlueWomb.HushBoss;
 
 public sealed partial class Hush : ModNPC
 {
+    public enum BossState
+    {
+        Spawning,
+        Despawning,
+        Death,
+        PhaseChange,
+
+        Idle,
+        // Phase 1
+        EyeRings,
+        MouthSalvos,
+        HomingVolleys,
+        // Phase 2
+        SinkRelocate,
+        FlyWheels,
+        GapRings,
+        // Phase 3
+        GaperTunnel,
+        Continuum,
+        // Phase 4
+        Chase,
+        Hemorrhage,
+        // Phase 5
+        TearBeams
+    }
+
+    public void DoCurrentState()
+    {
+        switch (State)
+        {
+            case (int)BossState.Spawning:
+                DoSpawn();
+                break;
+            case (int)BossState.Despawning:
+                DoDespawn();
+                break;
+            case (int)BossState.Death:
+                DoDeath();
+                break;
+            case (int)BossState.PhaseChange:
+                DoPhaseChange();
+                break;
+            case (int)BossState.Idle:
+                CheckAndPickAttack();
+                break;
+            case (int)BossState.EyeRings:
+                Attack_EyeRings();
+                break;
+            case (int)BossState.MouthSalvos:
+                Attack_MouthSalvos();
+                break;
+            case (int)BossState.HomingVolleys:
+                Attack_HomingVolleys();
+                break;
+            case (int)BossState.SinkRelocate:
+                Interphase_SinkRelocate();
+                break;
+            case (int)BossState.FlyWheels:
+                Attack_FlyWheels();
+                break;
+            case (int)BossState.GapRings:
+                Attack_GapRings();
+                break;
+        }
+    }
+
     public Vector2 HomePosition => new Point(NPC.homeTileX, NPC.homeTileY).ToWorldCoordinates();
 
     public void SetHome(Vector2 position)
@@ -205,7 +271,7 @@ public sealed partial class Hush : ModNPC
         AttackPool.Add(BossState.FlyWheels, 0.5, FlyWheelCondition);
     }
 
-    public void PickAttack()
+    public void CheckAndPickAttack()
     {
         Time = 0;
         MiscTime = 0;
@@ -217,7 +283,7 @@ public sealed partial class Hush : ModNPC
         }
 
         if (CheckForTarget())
-            State = (int)AttackPool.PickFromTop(3, 0.2);
+            State = (int)AttackPool.PickFromTop(2, 0.2);
         else
             State = (int)BossState.Despawning;
 

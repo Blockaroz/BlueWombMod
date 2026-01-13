@@ -1,5 +1,6 @@
 ﻿using BlueWombMod.Common.Graphics;
 using BlueWombMod.Common.Graphics.Camera;
+using BlueWombMod.Content.BlueWomb.HushBoss.Minions;
 using BlueWombMod.Content.BlueWomb.HushBoss.Projectiles;
 using BlueWombMod.Content.Particles;
 using Microsoft.Xna.Framework;
@@ -16,72 +17,6 @@ namespace BlueWombMod.Content.BlueWomb.HushBoss;
 
 public sealed partial class Hush : ModNPC
 {
-    public enum BossState
-    {
-        Spawning,
-        Despawning,
-        Death,
-        PhaseChange,
-
-        Idle,
-        // Phase 1
-        EyeRings,
-        MouthSalvos,
-        HomingVolleys,
-        // Phase 2
-        SinkRelocate,
-        FlyWheels,
-        GapRings,
-        // Phase 3
-        GaperTunnel,
-        Continuum,
-        // Phase 4
-        Chase,
-        Hemorrhage,
-        // Phase 5
-        TearBeams
-    }
-
-    public void DoCurrentState()
-    {
-        switch (State)
-        {
-            case (int)BossState.Spawning:
-                DoSpawn();
-                break;
-            case (int)BossState.Despawning:
-                DoDespawn();
-                break;
-            case (int)BossState.Death:
-                DoDeath();
-                break;
-            case (int)BossState.PhaseChange:
-                DoPhaseChange();
-                break;
-            case (int)BossState.Idle:
-                PickAttack();
-                break;
-            case (int)BossState.EyeRings:
-                Attack_EyeRings();
-                break;
-            case (int)BossState.MouthSalvos:
-                Attack_MouthSalvos();
-                break;
-            case (int)BossState.HomingVolleys:
-                Attack_HomingVolleys();
-                break;
-            case (int)BossState.SinkRelocate:
-                Interphase_SinkRelocate();
-                break;
-            case (int)BossState.FlyWheels:
-                Attack_FlyWheels();
-                break;
-            case (int)BossState.GapRings:
-                Attack_GapRings();
-                break;
-        }
-    }
-
     public static readonly NPCUtils.SearchFilter<Player> TargetOnlyPlayersInWomb = player => player.ZoneBlueWomb;
 
     public bool CheckForTarget()
@@ -189,87 +124,114 @@ public sealed partial class Hush : ModNPC
 
     public void Attack_MouthSalvos()
     {
-        const int StartUpTime = 18;
-        const int SalvoTime = 12;
-        const int TotalTime = StartUpTime + SalvoTime + 74;
+        const int StartUpTime = 22;
+        const int SalvoTime = 17;
+        const int Repeats = 3;
+        const int TotalTime = StartUpTime + SalvoTime + 24;
+        const int FullAttackTime = TotalTime * Repeats + 60;
 
         NPCAimedTarget target = NPC.GetTargetData();
 
         if (Time == 0)
+        {
             NPC.FaceTarget();
+
+            if (!target.Invalid)
+                TargetPosition = target.Center;
+        }
 
         float wobble = Math.Abs(MathF.Sin(Time * 0.08f)) * Utils.GetLerpValue(StartUpTime / 2f, StartUpTime, Time, true);
         Renderer.DrawScale = new Vector2(1f - wobble * 0.03f, 1f + wobble * 0.03f);
 
         const float faceOffsetAmount = 50f;
-        if (Time < StartUpTime)
+
+        float localTime = Time % TotalTime;
+
+        if (Time < TotalTime * Repeats)
         {
-            if (!target.Invalid)
-                TargetPosition = target.Center;
-
-            float moveFaceProgress = MathF.Sqrt(Utils.GetLerpValue(0, StartUpTime, Time, true));
-            Renderer.Face.Rotation = Utils.AngleLerp(0, NPC.AngleTo(TargetPosition) - MathHelper.PiOver2, moveFaceProgress);
-            Renderer.Face.Offset += new Vector2(0, faceOffsetAmount).RotatedBy(Renderer.Face.Rotation) * moveFaceProgress;
-
-            Renderer.Mouth.Scale.Y *= 0.2f + 0.8f * MathF.Sqrt(Utils.GetLerpValue(StartUpTime / 2f, 0, Time, true));
-
-            float chewProgress = Utils.GetLerpValue(StartUpTime / 2f, 0, Time, true);
-            Renderer.EyeLeft.Scale = new Vector2(1f + chewProgress * 0.2f, 1f - chewProgress * 0.15f);
-            Renderer.EyeRight.Scale = new Vector2(1f + chewProgress * 0.2f, 1f - chewProgress * 0.15f);
-        }
-        else
-        {
-            Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Squint;
-            Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Squint;
-
-            float faceReturnProgress = MathHelper.SmoothStep(0f, 1f, Utils.GetLerpValue(TotalTime / 1.1f, TotalTime / 2f, Time, true));
-            float spitProgress = MathF.Sin(Utils.GetLerpValue(0, SalvoTime + 5, Time - StartUpTime, true) * MathHelper.Pi);
-
-            Renderer.Face.Rotation = Utils.AngleLerp(0, NPC.AngleTo(TargetPosition) - MathHelper.PiOver2, faceReturnProgress);
-            Renderer.Face.Offset += new Vector2(0, faceOffsetAmount - spitProgress * 15).RotatedBy(Renderer.Face.Rotation) * MathF.Sqrt(faceReturnProgress);
-
-            Renderer.EyeLeft.Scale.Y += spitProgress * 0.2f;
-            Renderer.EyeRight.Scale.Y += spitProgress * 0.2f;
-            Renderer.Mouth.Scale.X *= 0.8f;
-            Renderer.Mouth.Scale.Y *= (MathF.Sqrt(Utils.GetLerpValue(0, SalvoTime, Time - StartUpTime, true)) + spitProgress * 0.67f);
-
-            Renderer.DrawOffset.X += Main.rand.NextFloat(-5f, 5f) * Utils.GetLerpValue(SalvoTime + 5, 0, Time - StartUpTime, true);
-
-            if (Time < StartUpTime + SalvoTime)
+            if (localTime < StartUpTime)
             {
-                if (Time == StartUpTime + 1)
+                if (!target.Invalid)
+                    TargetPosition = Vector2.Lerp(TargetPosition, target.Center, 0.2f);
+
+                float moveFaceProgress = MathF.Sqrt(Utils.GetLerpValue(0, StartUpTime, Time, true));
+                Renderer.Face.Rotation = Utils.AngleLerp(0, NPC.AngleTo(TargetPosition) - MathHelper.PiOver2, moveFaceProgress);
+                Renderer.Face.Offset += new Vector2(0, faceOffsetAmount).RotatedBy(Renderer.Face.Rotation) * moveFaceProgress;
+
+                Renderer.Mouth.Scale.Y *= 0.2f + 0.8f * MathF.Sqrt(Utils.GetLerpValue(StartUpTime / 2f, 0, localTime, true));
+
+                float chewProgress = Utils.GetLerpValue(StartUpTime / 1.5f, 0, localTime, true);
+                Renderer.EyeLeft.Scale = new Vector2(1f + chewProgress * 0.2f, 1f - chewProgress * 0.15f);
+                Renderer.EyeRight.Scale = new Vector2(1f + chewProgress * 0.2f, 1f - chewProgress * 0.15f);
+
+                if (localTime > StartUpTime / 2)
+                    Renderer.Blink();
+            }
+            else
+            {
+                Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Squint;
+                Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Squint;
+
+                float spitProgress = MathF.Sin(Utils.GetLerpValue(0, SalvoTime + 5, localTime - StartUpTime, true) * MathHelper.Pi);
+
+                Renderer.Face.Rotation = NPC.AngleTo(TargetPosition) - MathHelper.PiOver2;
+                Renderer.Face.Offset += new Vector2(0, faceOffsetAmount - spitProgress * 13).RotatedBy(Renderer.Face.Rotation);
+
+                Renderer.EyeLeft.Scale.Y += spitProgress * 0.2f;
+                Renderer.EyeRight.Scale.Y += spitProgress * 0.2f;
+                Renderer.Mouth.Scale.X *= 1f - Utils.GetLerpValue(0f, 0.5f, spitProgress, true) * 0.3f;
+                Renderer.Mouth.Scale.Y *= (MathF.Sqrt(Utils.GetLerpValue(0, SalvoTime, localTime - StartUpTime, true)) + spitProgress * 0.67f);
+
+                Renderer.DrawOffset.X += Main.rand.NextFloat(-5f, 5f) * Utils.GetLerpValue(SalvoTime + 5, 0, localTime - StartUpTime, true);
+
+                if (localTime < StartUpTime + SalvoTime)
                 {
-                    SoundEngine.PlaySound(SoundID.Item112 with { Pitch = -0.2f }, NPC.Center);
-
-                    if (Main.netMode != NetmodeID.MultiplayerClient)
+                    if (localTime == StartUpTime + 1)
                     {
-                        GlowTearType = Main.rand.Next(3);
-                        NPC.netUpdate = true;
+                        SoundEngine.PlaySound(SoundID.Item112 with { Pitch = -0.2f }, NPC.Center);
 
-                        const float MouthPosOff = faceOffsetAmount * 1.8f;
-                        const int SalvoWidth = 6;
-                        for (int i = -SalvoWidth; i <= SalvoWidth; i++)
+                        if (Main.netMode != NetmodeID.MultiplayerClient)
                         {
-                            float xOff = MathF.Pow(Math.Abs((float)i) / SalvoWidth, 0.8f) * Math.Sign(i);
+                            GlowTearType += Main.rand.Next(1, 3);
+                            NPC.netUpdate = true;
 
-                            Vector2 position = NPC.Center + new Vector2(xOff * 40, MouthPosOff - Math.Abs(xOff) * 10).RotatedBy(Renderer.Face.Rotation);
-                            Vector2 direction = Vector2.UnitY.RotatedBy(Renderer.Face.Rotation - xOff * 0.1f);
+                            const float MouthPosOff = faceOffsetAmount * 1.8f;
+                            const int SalvoWidth = 6;
+                            for (int i = -SalvoWidth; i <= SalvoWidth; i++)
+                            {
+                                float xOff = MathF.Pow(Math.Abs((float)i) / SalvoWidth, 0.8f) * Math.Sign(i);
 
-                            float speed = 4.5f - MathF.Pow(Math.Abs(xOff) * 0.9f, 2.22222222222222222f);
-                            Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), position, direction * speed, ModContent.ProjectileType<GlowingEyeTear>(), 30, 0f);
-                            glowTear.ai[0] = 1;
-                            glowTear.localAI[0] = GlowTearType;
+                                Vector2 position = NPC.Center + new Vector2(xOff * 40, MouthPosOff - Math.Abs(xOff) * 10).RotatedBy(Renderer.Face.Rotation);
+                                Vector2 direction = Vector2.UnitY.RotatedBy(Renderer.Face.Rotation - xOff * 0.1f);
+
+                                float speed = 4.5f - MathF.Pow(Math.Abs(xOff) * 0.9f, 2.22222222222222222f);
+                                Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), position, direction * speed, ModContent.ProjectileType<GlowingEyeTear>(), 30, 0f);
+                                glowTear.ai[0] = 1;
+                                glowTear.localAI[0] = GlowTearType;
+                            }
                         }
                     }
                 }
+                else
+                {
+                    if (!target.Invalid)
+                        TargetPosition = Vector2.Lerp(TargetPosition, target.Center, 0.2f);
+                }
             }
+        }
+        else
+        {
+            float faceReturnProgress = MathHelper.SmoothStep(0f, 1f, Utils.GetLerpValue(FullAttackTime, TotalTime * Repeats, Time, true));
+
+            Renderer.Face.Rotation = Utils.AngleLerp(0, NPC.AngleTo(TargetPosition) - MathHelper.PiOver2, faceReturnProgress);
+            Renderer.Face.Offset += new Vector2(0, faceOffsetAmount).RotatedBy(Renderer.Face.Rotation) * MathF.Sqrt(faceReturnProgress);
         }
 
         Renderer.EyeLeft.Offset.Y += (Renderer.EyeLeft.Scale.Y - 1f) * -5f;
         Renderer.EyeRight.Offset.Y += (Renderer.EyeRight.Scale.Y - 1f) * -5f;
         Renderer.Mouth.Offset.Y += (Renderer.Mouth.Scale.Y - 1f) * 7f;
 
-        if (Time >= TotalTime + 50)
+        if (Time >= FullAttackTime + 5)
         {
             EndAttack();
             return;
@@ -283,7 +245,7 @@ public sealed partial class Hush : ModNPC
         const int ChargeTime = 20;
         const int VolleyTime = 30;
         const int TotalTime = ChargeTime + VolleyTime;
-        const int Repeats = 3;
+        const int Repeats = 1;
 
         float localTime = Time % TotalTime;
 
@@ -422,7 +384,83 @@ public sealed partial class Hush : ModNPC
 
     public void Attack_FlyWheels()
     {
-        EndAttack();
+        const int AhTime = 58;
+        const int ChooTime = 4;
+        const int FlyCount = 10;
+        const int TotalTime = AhTime + ChooTime * FlyCount;
+
+        if (Time < AhTime)
+        {
+            float squishDownProgress = Utils.GetLerpValue(0, AhTime / 7f, Time, true);
+            Vector2 squishDown = new Vector2(1f + squishDownProgress * 0.3f, 1f - squishDownProgress * 0.5f);
+            float stretchUpProgress = MathF.Cbrt(Utils.GetLerpValue(AhTime / 5f, AhTime, Time, true)) + Utils.GetLerpValue(AhTime / 1.3f, AhTime * 1.5f, Time, true);
+            Vector2 stretchUp = new Vector2(1f - stretchUpProgress * 0.1f, 1f + stretchUpProgress * 0.1f);
+            Renderer.DrawScale = Vector2.Lerp(squishDown, stretchUp, Utils.GetLerpValue(0, AhTime / 6f, Time, true));
+
+            Renderer.Face.Offset.Y -= stretchUpProgress * 15f;
+
+            Renderer.MouthState = HushRenderer.MouthAnimationState.Wide;
+            Renderer.Mouth.Scale = new Vector2(0.6f, 1f + MathF.Sin(squishDownProgress * MathHelper.Pi) * 0.3f);
+            Renderer.Mouth.Offset.Y += MathF.Sin(squishDownProgress * MathHelper.Pi) * 4f;
+
+            Renderer.EyeLeft.Scale = new Vector2(1f, 1.2f);
+            Renderer.EyeRight.Scale = new Vector2(1f, 1.2f);
+
+            if (Time > AhTime / 1.1f)
+            {
+                Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Squint;
+                Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Squint;
+            }
+        }
+        else if (Time < TotalTime)
+        {
+            Renderer.Blink();
+
+            float sneezeQuickProgress = MathF.Sqrt(Utils.GetLerpValue(AhTime, AhTime + 12, Time, true));
+            Renderer.Mouth.Scale = new Vector2(1.1f + sneezeQuickProgress * 0.3f, 0.3f);
+
+            Renderer.Face.Offset.Y += sneezeQuickProgress * 6f;
+
+            float dropDownAndUp = sneezeQuickProgress * Utils.GetLerpValue(TotalTime, TotalTime - 8, Time, true);
+            float wobble = MathF.Sin(MiscTime / 1.5f + dropDownAndUp);
+            Vector2 wobbleScale = new Vector2(1f + wobble * 0.1f, 1f - wobble * 0.2f);
+            Renderer.DrawScale = Vector2.Lerp(wobbleScale, new Vector2(1f + sneezeQuickProgress * 0.2f - wobble * 0.01f, 1f - MathF.Sqrt(sneezeQuickProgress) * 0.2f + wobble * 0.01f), dropDownAndUp);
+            Renderer.DrawOffset.X += Main.rand.NextFloat(-8f, 8f);
+
+            Vector2 nosePosition = NPC.Center + new Vector2(0, 40f);
+            if (Time == AhTime)
+            {
+                for (int i = 0; i < Main.rand.Next(20, 30); i++)
+                {
+                    Vector2 flyParticleVel = NPC.velocity + new Vector2(0, Main.rand.NextFloat(3f, 10f)).RotatedByRandom(1f);
+                    Dust flySmoke = Dust.NewDustPerfect(nosePosition, DustID.Wraith, flyParticleVel, 50, Scale: Main.rand.NextFloat(2f, 4f));
+                    flySmoke.noGravity = true;
+                }
+            }
+
+            if ((Time - AhTime) % ChooTime == 0 && Time < TotalTime)
+            {
+                Vector2 flyParticleVel = NPC.velocity + new Vector2(0, Main.rand.NextFloat(3f, 10f)).RotatedByRandom(1f);
+                var flyParticle = LittleAngryBugParticle.RequestNew(nosePosition, flyParticleVel * 0.6f, Main.rand.Next(80, 200), Main.rand.NextFloat(0.5f, 2f));
+                ParticleEngine.Particles.Add(flyParticle);
+
+                if (Main.netMode != NetmodeID.MultiplayerClient)
+                {
+                    NPC fly = NPC.NewNPCDirect(NPC.GetSource_FromThis(), nosePosition, ModContent.NPCType<HushFly>());
+                    fly.velocity = new Vector2(0, Main.rand.NextFloat(2f, 5f)).RotatedByRandom(1f);
+                }
+            }
+        }
+
+        Renderer.DrawOffset.Y -= (Renderer.DrawScale.Y - 1f) * 50;
+
+        if (Time >= TotalTime + 90)
+        {
+            EndAttack();
+            return;
+        }
+
+        Time++;
     }
 
     public void Attack_GapRings()
