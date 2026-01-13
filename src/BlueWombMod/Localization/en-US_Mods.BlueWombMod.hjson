@@ -58,7 +58,7 @@ NPCs: {
 	AttackFly.DisplayName: Attack Fly
 	PooterFly.DisplayName: Pooter
 	LittleHush.DisplayName: ???
-	Hush.DisplayName: The Hush
+	Hush.DisplayName: Hush
 	BlueGaper.DisplayName: Blue Gaper
 	HushFly.DisplayName: Hush Fly
 }

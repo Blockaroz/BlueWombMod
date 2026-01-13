@@ -19,28 +19,31 @@ public sealed class HushFly : ModNPC
         NPC.height = 28;
 
         NPC.lifeMax = 150;
+        NPC.defense = 10;
         NPC.noGravity = true;
-        NPC.knockBackResist = 0.9f;
+        NPC.knockBackResist = 0.1f;
 
         NPC.HitSound = SoundID.NPCHit1;
         NPC.DeathSound = SoundID.NPCDeath1 with { Pitch = 0.33f };
 
         NPC.damage = 30;
+
+        SpawnModBiomes = [ModContent.GetInstance<BlueWombBiome>().Type];
     }
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(
-            BlueWombBiome.BestiaryInfoElement,
-            new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
     }
-
-    public const int STATE_ATTACK = 0;
-    public const int STATE_PASSIVE = 1;
 
     public ref float State => ref NPC.ai[0];
     public ref float Time => ref NPC.ai[1];
     public ref float SpawnTime => ref NPC.ai[2];
+
+    public enum HushFlyShape
+    {
+        Orbit, Circle, Triangle, Square, Pentagon, Star
+    }
 
     public override void OnSpawn(IEntitySource source)
     {
@@ -53,36 +56,21 @@ public sealed class HushFly : ModNPC
     {
         if (NPC.HasBuff(BuffID.Frozen))
         {
+            NPC.velocity *= 0.2f;
             return;
-        }
-
-        if (SpawnTime < 20)
-        {
-            SpawnTime++;
-            NPC.velocity *= 0.9f;
-        }
-        else
-        {
-            NPC.velocity *= 0.97f;
-
-            NPC.TargetClosest();
-
-            NPCAimedTarget target = NPC.GetTargetData();
-
-            if (!target.Invalid)
-            {
-                if (Time % 4 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
-                {
-                    NPC.velocity += Main.rand.NextVector2Circular(1, 1) * Main.rand.NextFloat();
-                    NPC.netUpdate = true;
-                }
-
-                NPC.velocity += NPC.DirectionTo(target.Center).SafeNormalize(Vector2.Zero) * 0.2f;
-            }
         }
 
         NPC.direction = NPC.velocity.X < 0 ? -1 : 1;
         NPC.rotation = NPC.velocity.X * 0.015f * NPC.scale;
+
+        if (SpawnTime < 20)
+        {
+            SpawnTime++;
+        }
+        else
+        {
+
+        }
 
         if (Main.rand.NextBool(50))
         {

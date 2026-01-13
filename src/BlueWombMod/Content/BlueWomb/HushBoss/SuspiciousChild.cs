@@ -6,6 +6,7 @@ using System;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.GameContent;
+using Terraria.GameContent.Bestiary;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -36,6 +37,13 @@ public sealed class SuspiciousChild : ModNPC
         NPC.rarity = 1;
 
         NPC.HitSound = SoundID.NPCHit1;
+
+        SpawnModBiomes = [ModContent.GetInstance<BlueWombBiome>().Type];
+    }
+
+    public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
+    {
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(SuspiciousChild)}.FlavorText")));
     }
 
     public ref float Time => ref NPC.ai[0];
@@ -52,8 +60,6 @@ public sealed class SuspiciousChild : ModNPC
 
         int distanceToFloor = DistanceToFloor();
         NPC.velocity.Y = (distanceToFloor - 15) * 0.1f + MathF.Sin(Time / 120f * MathHelper.TwoPi) * 0.5f;
-
-        DrawOffset.X = MathF.Sin(Time / 6f * MathHelper.TwoPi);
 
         NPC.TargetClosest(false);
 
@@ -134,6 +140,15 @@ public sealed class SuspiciousChild : ModNPC
 
     private Vector2 drawOffset;
     public ref Vector2 DrawOffset => ref drawOffset;
+
+    public override void FindFrame(int frameHeight)
+    {
+        float time = Time / 6f;
+        if (NPC.IsABestiaryIconDummy)
+            time = Main.GlobalTimeWrappedHourly * 12f;
+
+        DrawOffset.X = MathF.Sin(time * MathHelper.TwoPi) * 0.75f;
+    }
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {

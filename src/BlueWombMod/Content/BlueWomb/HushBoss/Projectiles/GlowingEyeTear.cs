@@ -41,7 +41,7 @@ public sealed class GlowingEyeTear : ModProjectile
         {
             0 => new Color(106, 152, 198),
             1 => new Color(200, 173, 107),
-            2 => new Color(156, 160, 111),
+            2 => new Color(156, 180, 111),
             _ => Color.DarkSlateBlue
         };
     }
@@ -102,7 +102,7 @@ public sealed class GlowingEyeTear : ModProjectile
 
         for (int i = 0; i < 15; i++)
         {
-            Dust dust = Dust.NewDustPerfect(Projectile.Center, DustID.SilverFlame, Main.rand.NextVector2Circular(2, 2), newColor: TearColor * 0.5f, Scale: Main.rand.NextFloat(1f, 3f));
+            Dust dust = Dust.NewDustPerfect(Projectile.Center, DustID.AncientLight, Main.rand.NextVector2Circular(2, 2), newColor: TearColor * 0.5f, Scale: Main.rand.NextFloat(1f, 2f));
             dust.noGravity = true;
         }
     }
@@ -123,16 +123,17 @@ public sealed class GlowingEyeTear : ModProjectile
 
         float scale = Utils.GetLerpValue(0, 19 * Projectile.scale, Time, true);
 
-        Main.EntitySpriteDraw(glow, Projectile.Center - Main.screenPosition, glow.Frame(), lightColor with { A = 0 } * 2f, Projectile.rotation, glow.Size() / 2, Projectile.scale * scale * 0.08f, 0, 0);
+        Main.EntitySpriteDraw(glow, Projectile.Center - Main.screenPosition, glow.Frame(), lightColor with { A = 0 } * 2f, Projectile.rotation, glow.Size() / 2, Projectile.scale * scale * 0.09f, 0, 0);
 
         Rectangle frame = texture.Frame(1, 2, 0, 0);
         Rectangle glowFrame = texture.Frame(1, 2, 0, 1);
         Main.EntitySpriteDraw(texture, Projectile.Center - Main.screenPosition, frame, lightColor, Projectile.rotation, frame.Size() / 2, Projectile.scale * scale, 0, 0);
 
-        Color glowColor = Color.Lerp(lightColor * 0.5f, Color.White, 0.5f + 0.5f * MathF.Sin(MiscTime / 6f * MathHelper.Pi)) * Projectile.Opacity;
+        float flickerAmount = 0.6f + 0.4f * MathF.Sin(MiscTime / 6f * MathHelper.Pi);
+        Color glowColor = Color.Lerp(lightColor * 0.5f, Color.White, flickerAmount) * Projectile.Opacity;
         Main.EntitySpriteDraw(texture, Projectile.Center - Main.screenPosition, glowFrame, glowColor with { A = 10 }, Projectile.rotation, glowFrame.Size() / 2, Projectile.scale * scale, 0, 0);
 
-        Main.EntitySpriteDraw(glow, Projectile.Center - Main.screenPosition, glow.Frame(), lightColor with { A = 0 } * 0.8f, Projectile.rotation, glow.Size() / 2, Projectile.scale * scale * 0.15f, 0, 0);
+        Main.EntitySpriteDraw(glow, Projectile.Center - Main.screenPosition, glow.Frame(), lightColor with { A = 0 } * 0.67f, Projectile.rotation, glow.Size() / 2, Projectile.scale * scale * 0.15f, 0, 0);
         /*
         float flareScale = Projectile.scale * scale * Utils.GetLerpValue(250, 100, Projectile.Distance(Main.LocalPlayer.Center), true);
         flareScale *= MathF.Sin(Time) * 0.15f + 1f;

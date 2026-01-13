@@ -29,13 +29,13 @@ public sealed class PooterFly : ModNPC
 
         NPC.HitSound = SoundID.NPCHit1;
         NPC.DeathSound = SoundID.NPCDeath11;
+
+        SpawnModBiomes = [ModContent.GetInstance<BlueWombBiome>().Type];
     }
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(
-            BlueWombBiome.BestiaryInfoElement,
-            new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(PooterFly)}.FlavorText")));
     }
 
     public ref float ShootTime => ref NPC.ai[0];
@@ -55,6 +55,7 @@ public sealed class PooterFly : ModNPC
 
         if (NPC.HasBuff(BuffID.Frozen))
         {
+            NPC.velocity *= 0.2f;
             return;
         }
 

@@ -16,8 +16,6 @@ public sealed class BlueWombBiome : ModBiome
 
     public override int Music => MusicID.OtherworldlyUGCrimson;
 
-    public static ModBiomeBestiaryInfoElement BestiaryInfoElement => ModContent.GetInstance<BlueWombBiome>().ModBiomeBestiaryInfoElement;
-
     public override bool IsBiomeActive(Player player)
     {
         int x = Math.Clamp((int)(player.Center.X / 16), 2, Main.maxTilesX - 2);

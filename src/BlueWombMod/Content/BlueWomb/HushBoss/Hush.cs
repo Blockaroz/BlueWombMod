@@ -50,13 +50,15 @@ public sealed partial class Hush : ModNPC
 
         Renderer = new HushRenderer(NPC);
         NPC.hide = true;
+
+        SpawnModBiomes = [ModContent.GetInstance<BlueWombBiome>().Type];
+
+        AttackPool = new Common.Utilities.WeightedAttackPool<BossState>();
     }
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(
-            BlueWombBiome.BestiaryInfoElement,
-            new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(Hush)}.FlavorText")));
     }
 
     public ref float State => ref NPC.ai[0];
@@ -82,6 +84,13 @@ public sealed partial class Hush : ModNPC
         Renderer.DrawScale = new Vector2(1f - wobble * 0.02f, 1f + wobble * 0.02f);
 
         DoCurrentState();
+
+        if (HitTime > 0)
+        {
+            HitTime--;
+            float hitWobble = MathF.Sin(HitTime / 2f);
+            Renderer.DrawScale += new Vector2(-hitWobble * 0.02f, hitWobble * 0.02f);
+        }
 
         Renderer.Update();
     }
@@ -123,7 +132,7 @@ public sealed partial class Hush : ModNPC
 
     public void BreakRadius()
     {
-        const int radius = 250 / 16;
+        const int radius = 200 / 16;
         for (int j = -radius; j < radius; j++)
         {
             for (int i = -radius; i < radius; i++)
@@ -150,9 +159,23 @@ public sealed partial class Hush : ModNPC
         }
     }
 
+    public int HitTime { get; set; }
+
     public override void ModifyIncomingHit(ref NPC.HitModifiers modifiers)
     {
-        base.ModifyIncomingHit(ref modifiers);
+
+    }
+
+    public override void OnHitByItem(Player player, Item item, NPC.HitInfo hit, int damageDone)
+    {
+        if (HitTime == 0)
+            HitTime = 10;
+    }
+
+    public override void OnHitByProjectile(Projectile projectile, NPC.HitInfo hit, int damageDone)
+    {
+        if (HitTime == 0)
+            HitTime = 10;
     }
 
     public override void BossLoot(ref int potionType)

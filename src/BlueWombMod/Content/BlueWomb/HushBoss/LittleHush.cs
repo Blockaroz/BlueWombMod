@@ -42,13 +42,14 @@ public sealed partial class LittleHush : ModNPC
         Music = 0;
 
         AttackPool = new WeightedAttackPool<BossState>();
+
+        SpawnModBiomes = [ModContent.GetInstance<BlueWombBiome>().Type];
     }
 
     public ref float Phase => ref NPC.ai[0];
     public ref float State => ref NPC.ai[1];
     public ref float Time => ref NPC.ai[2];
     public ref float MiscTime => ref NPC.ai[3];
-
 
     public int AddBossArmorFactor { get; private set; }
 

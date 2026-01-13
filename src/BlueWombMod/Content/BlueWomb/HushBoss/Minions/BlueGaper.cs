@@ -26,13 +26,13 @@ public sealed class BlueGaper : ModNPC
         NPC.DeathSound = SoundID.NPCDeath1;
 
         NPC.damage = 50;
+
+        SpawnModBiomes = [ModContent.GetInstance<BlueWombBiome>().Type];
     }
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(
-            BlueWombBiome.BestiaryInfoElement,
-            new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(BlueGaper)}.FlavorText")));
     }
 
     public ref float Time => ref NPC.ai[0];

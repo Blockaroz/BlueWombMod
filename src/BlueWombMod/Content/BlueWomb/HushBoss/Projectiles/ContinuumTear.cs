@@ -1,4 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+﻿using BlueWombMod.Common.Graphics;
+using BlueWombMod.Content.Particles;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using Terraria;
@@ -30,33 +32,33 @@ public sealed class ContinuumTear : ModProjectile
 
     public ref float MiscTime => ref Projectile.localAI[0];
 
-    public override void OnSpawn(IEntitySource source)
-    {
-        MiscTime = Main.rand.Next(30);
-        Projectile.scale *= Main.rand.NextFloat(0.8f, 1.2f);
-    }
+    public bool HitWall { get => Projectile.localAI[1] == 1; set => Projectile.localAI[1] = value.ToInt(); }
 
     private Vector2 originalVelocity;
     public ref Vector2 OriginalVelocity => ref originalVelocity;
 
+    public override void OnSpawn(IEntitySource source)
+    {
+        MiscTime = Main.rand.Next(30);
+        Projectile.scale *= Main.rand.NextFloat(0.8f, 1.2f);
+
+        OriginalVelocity = Projectile.velocity;
+    }
+
     public override void AI()
     {
-        if (Time == 0)
-        {
-            OriginalVelocity = Projectile.velocity;
-        }
-
         if (Time < 30)
             Projectile.tileCollide = false;
-
         else if (Time == 30)
             Projectile.tileCollide = true;
-
 
         Vector3 cross = Vector3.Cross(new Vector3(OriginalVelocity, 0), Vector3.Forward * (Curvature > 0 ? 1 : -1));
         Vector2 perpendicular = new Vector2(cross.X, cross.Y);
 
-        Projectile.Opacity = Utils.GetLerpValue(0, 40, Time, true) * Utils.GetLerpValue(10, 60, Projectile.timeLeft, true);
+        Projectile.Opacity = Utils.GetLerpValue(0, 40, Time, true);
+        if (HitWall)
+            Projectile.Opacity *= Utils.GetLerpValue(10, 60, Projectile.timeLeft, true);
+
         Lighting.AddLight(Projectile.Center, Color.Purple.ToVector3() * Projectile.Opacity);
 
         float beginCurve = Utils.GetLerpValue(0, 20, Time, true);
@@ -77,6 +79,7 @@ public sealed class ContinuumTear : ModProjectile
     {
         Projectile.tileCollide = false;
         Projectile.velocity = oldVelocity;
+        HitWall = true;
 
         if (Projectile.timeLeft > 60)
         {
@@ -106,12 +109,23 @@ public sealed class ContinuumTear : ModProjectile
                     break;
                 }
             }
-        }
 
-        Projectile.damage = 0;
-        Projectile.timeLeft = Math.Min(Projectile.timeLeft, 60);
+            Projectile.timeLeft = 60;
+            Projectile.damage = 0;
+        }
+        else
+            Projectile.Kill();
 
         return false;
+    }
+
+    public override void OnKill(int timeLeft)
+    {
+        if (!HitWall)
+        {
+            var particle = ContinuumPopParticle.RequestNew(Projectile.Center, MiscTime / 25f % 1f, timeLeft: Main.rand.Next(10, 25), scale: Projectile.scale);
+            ParticleEngine.Particles.Add(particle);
+        }
     }
 
     public override bool? Colliding(Rectangle projHitbox, Rectangle targetHitbox)
@@ -122,14 +136,19 @@ public sealed class ContinuumTear : ModProjectile
         return base.Colliding(projHitbox, targetHitbox);
     }
 
-    public override Color? GetAlpha(Color lightColor)
+    public static Color GetContinuumColor(float progress, float opacity = 1f)
     {
-        float progress = MiscTime / 25f % 1f;
         var purple = Color.Lerp(Color.Black, Color.Purple, Utils.GetLerpValue(0f, 0.33f, progress, true));
         var black = Color.Lerp(purple, Color.GhostWhite, Utils.GetLerpValue(0.33f, 0.66f, progress, true));
         var total = Color.Lerp(black, Color.Black, Utils.GetLerpValue(0.66f, 1f, progress, true));
-        var fade = Color.Lerp(Color.Purple * Projectile.Opacity, total, Projectile.Opacity);
+        var fade = Color.Lerp(Color.Purple * opacity, total, opacity);
         return fade;
+    }
+
+    public override Color? GetAlpha(Color lightColor)
+    {
+        float progress = MiscTime / 25f % 1f;
+        return GetContinuumColor(progress, Projectile.Opacity);
     }
 
     public override bool PreDraw(ref Color lightColor)

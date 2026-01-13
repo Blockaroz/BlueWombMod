@@ -1,4 +1,5 @@
 ﻿using BlueWombMod.Common.Graphics.Camera;
+using BlueWombMod.Common.Utilities;
 using BlueWombMod.Content.BlueWomb.HushBoss.Projectiles;
 using BlueWombMod.Content.BlueWomb.Tiles;
 using Microsoft.Xna.Framework;
@@ -34,7 +35,8 @@ public sealed partial class Hush : ModNPC
         {
             if (Time == 0)
             {
-                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 2f, TotalTime, 2, "HushEntrance"));
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 5f, TotalTime, 2, uniqueID: "HushEntrance"));
+                Main.instance.CameraModifiers.Add(new SpotFocusModifier(NPC.Center, PushTime, BounceOutTime));
 
                 // Roar Sound
             }
@@ -47,10 +49,10 @@ public sealed partial class Hush : ModNPC
             Renderer.DrawScale = new Vector2(1f + sqrtProgress * 0.1f, 1f - sqrtProgress * 0.1f);
             Renderer.Mouth.Scale = new Vector2(0.9f + sqrtProgress * 0.2f, 1f - sqrtProgress * 0.2f);
 
-            Renderer.EyeStateLeft = HushRenderer.EyeState.Closed;
+            Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Closed;
             Renderer.EyeLeft.Offset.Y -= 7f;
             Renderer.EyeLeft.Rotation = 0.2f;
-            Renderer.EyeStateRight = HushRenderer.EyeState.Closed;
+            Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Closed;
             Renderer.EyeRight.Offset.Y -= 7f;
             Renderer.EyeRight.Rotation = -0.2f;
             Renderer.Blink();
@@ -64,7 +66,7 @@ public sealed partial class Hush : ModNPC
 
             if (Time == PushTime)
             {
-                // BreakRadius();
+                BreakRadius();
 
                 Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "HushEntrance"));
 
@@ -81,6 +83,9 @@ public sealed partial class Hush : ModNPC
             NPC.dontTakeDamage = false;
 
             Time = 0;
+            MiscTime = 0;
+
+            SetupAttackPool();
             State = (int)BossState.Idle;
         }
     }
@@ -142,10 +147,10 @@ public sealed partial class Hush : ModNPC
 
         if (Time < RoarTime)
         {
-            Renderer.EyeStateLeft = HushRenderer.EyeState.Closed;
+            Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Closed;
             Renderer.EyeLeft.Offset.Y -= 7f;
             Renderer.EyeLeft.Rotation = 0.2f;
-            Renderer.EyeStateRight = HushRenderer.EyeState.Closed;
+            Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Closed;
             Renderer.EyeRight.Offset.Y -= 7f;
             Renderer.EyeRight.Rotation = -0.2f;
             Renderer.Blink();
@@ -188,11 +193,21 @@ public sealed partial class Hush : ModNPC
         }
     }
 
+    private WeightedAttackPool<BossState> AttackPool { get; set; } = new WeightedAttackPool<BossState>();
+
+    public void SetupAttackPool()
+    {
+        AttackPool.Clear();
+        AttackPool.Add(BossState.EyeRings, 0.5);
+        AttackPool.Add(BossState.MouthSalvos, 0.5);
+        AttackPool.Add(BossState.LineVolleys, 0.5);
+    }
+
     public void PickAttack()
     {
         if (CheckForTarget())
         {
-            State = (int)BossState.EyeRings;
+            State = (int)AttackPool.PickFromTop(3, 0.2);
         }
     }
 

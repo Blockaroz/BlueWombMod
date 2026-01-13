@@ -27,13 +27,13 @@ public sealed class AttackFly : ModNPC
         NPC.DeathSound = SoundID.NPCDeath1 with { Pitch = 0.33f };
 
         NPC.damage = 30;
+
+        SpawnModBiomes = [ModContent.GetInstance<BlueWombBiome>().Type];
     }
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(
-            BlueWombBiome.BestiaryInfoElement,
-            new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(AttackFly)}.FlavorText")));
     }
 
     public const int STATE_ATTACK = 0;
@@ -56,6 +56,7 @@ public sealed class AttackFly : ModNPC
     {
         if (NPC.HasBuff(BuffID.Frozen))
         {
+            NPC.velocity *= 0.2f;
             return;
         }
 

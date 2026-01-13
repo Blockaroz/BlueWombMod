@@ -19,12 +19,19 @@ public sealed class HushRenderer(NPC nPC)
 
     public bool HideMound { get; set; }
 
-    public enum EyeState
+    public enum EyeAnimationState
     {
         Open,
         Squint,
         Closed,
         Glowing
+    }
+
+    public enum MouthAnimationState
+    {
+        Normal,
+        Wide,
+        Chewing
     }
 
     public struct Transformation()
@@ -40,16 +47,17 @@ public sealed class HushRenderer(NPC nPC)
     private Transformation _faceTransform;
     public ref Transformation Face => ref _faceTransform;
 
-    public EyeState EyeStateLeft { get; set; }
+    public EyeAnimationState EyeStateLeft { get; set; }
     private Transformation _eyeLeftTransform;
     public ref Transformation EyeLeft => ref _eyeLeftTransform;
 
-    public EyeState EyeStateRight { get; set; }
+    public EyeAnimationState EyeStateRight { get; set; }
     private Transformation _eyeRightTransform;
     public ref Transformation EyeRight => ref _eyeRightTransform;
 
     public Color EyeGlowColor;
 
+    public MouthAnimationState MouthState { get; set; }
     private Transformation _mouthTransform;
     public ref Transformation Mouth => ref _mouthTransform;
 
@@ -65,12 +73,13 @@ public sealed class HushRenderer(NPC nPC)
         Body = new Transformation();
         Face = new Transformation();
 
-        EyeStateLeft = EyeState.Open;
+        EyeStateLeft = EyeAnimationState.Open;
         EyeLeft = new Transformation();
 
-        EyeStateRight = EyeState.Open;
+        EyeStateRight = EyeAnimationState.Open;
         EyeRight = new Transformation();
 
+        MouthState = MouthAnimationState.Normal;
         Mouth = new Transformation();
 
         EyeGlowColor = Color.Transparent;
@@ -101,7 +110,7 @@ public sealed class HushRenderer(NPC nPC)
             if (blinkCurve > 0.4f)
             {
                 EyeLeft.Scale.Y += 0.5f;
-                EyeStateLeft = EyeState.Closed;
+                EyeStateLeft = EyeAnimationState.Closed;
             }
         }
         else
@@ -119,7 +128,7 @@ public sealed class HushRenderer(NPC nPC)
             if (blinkCurve > 0.4f)
             {
                 EyeRight.Scale.Y += 0.5f;
-                EyeStateRight = EyeState.Closed;
+                EyeStateRight = EyeAnimationState.Closed;
             }
         }
         else
@@ -144,7 +153,7 @@ public sealed class HushRenderer(NPC nPC)
 
     public void BlinkLeft()
     {
-        if (blinkLeftTime == -1 && EyeStateLeft != EyeState.Closed)
+        if (blinkLeftTime == -1 && EyeStateLeft != EyeAnimationState.Closed)
             blinkLeftTime = BLINK_TIME;
         else
             blinkLeftTime = Math.Max(blinkLeftTime, BLINK_TIME / 2);
@@ -152,7 +161,7 @@ public sealed class HushRenderer(NPC nPC)
 
     public void BlinkRight()
     {
-        if (blinkRightTime == -1 && EyeStateRight != EyeState.Closed)
+        if (blinkRightTime == -1 && EyeStateRight != EyeAnimationState.Closed)
             blinkRightTime = BLINK_TIME;
         else
             blinkRightTime = Math.Max(blinkRightTime, BLINK_TIME / 2);
@@ -163,8 +172,8 @@ public sealed class HushRenderer(NPC nPC)
         if (color is Color glowColor)
             EyeGlowColor = glowColor;
 
-        if (EyeStateLeft == EyeState.Open)
-            EyeStateLeft = EyeState.Glowing;
+        if (EyeStateLeft == EyeAnimationState.Open)
+            EyeStateLeft = EyeAnimationState.Glowing;
     }
 
     public void GlowRight(Color? color = null)
@@ -172,8 +181,8 @@ public sealed class HushRenderer(NPC nPC)
         if (color is Color glowColor)
             EyeGlowColor = glowColor;
 
-        if (EyeStateRight == EyeState.Open)
-            EyeStateRight = EyeState.Glowing;
+        if (EyeStateRight == EyeAnimationState.Open)
+            EyeStateRight = EyeAnimationState.Glowing;
     }
 
     public void SetIndependentScales(Vector2 scale)
@@ -206,7 +215,6 @@ public sealed class HushRenderer(NPC nPC)
             for (int i = 0; i < lightSize; i++)
             {
                 Vector2 position = center + (new Vector2(width * (i + 0.5f - lightSize / 2f) / lightSize, height * (j + 0.5f - lightSize / 2f) / lightSize) * scale).RotatedBy(rotation);
-                //Dust.QuickDust(position, Color.Red);
                 lights[i + j * lightSize] = GetColor(position);
             }
         }
@@ -223,17 +231,21 @@ public sealed class HushRenderer(NPC nPC)
         spriteBatch.End(out var ss);
 
         var center = Hush.DrawTarget.Size() / 4f;
-        var faceScale = Face.Scale * new Vector2(1f - Math.Abs(MathF.Sin(Face.Rotation)) * 0.2f, 1f + Math.Abs(MathF.Sin(Face.Rotation)) * 0.1f);
+        var faceScale = Face.Scale * new Vector2(1f - Math.Abs(MathF.Sin(Face.Rotation)) * 0.15f, 1f + Math.Abs(MathF.Sin(Face.Rotation)) * 0.12f);
         var faceRotation = Face.Rotation;
 
+        float faceDist = Utils.GetLerpValue(20, 120, Face.Offset.Length(), true);
+
         Vector2 mouthPos = center + Face.Offset * 0.75f * faceScale + ((Mouth.Offset + new Vector2(0, 50)) * faceScale).RotatedBy(faceRotation);
-        var mouthScale = faceScale * Mouth.Scale * new Vector2(1f, 1f - Utils.GetLerpValue(20, 120, Face.Offset.Length(), true));
+        var mouthScale = faceScale * Mouth.Scale * new Vector2(1f, 1f - faceDist);
 
         Vector2 eyeLeftPos = center + Face.Offset * faceScale + ((EyeLeft.Offset + new Vector2(-74, -16)) * faceScale).RotatedBy(faceRotation);
         var eyeLeftScale = faceScale * EyeLeft.Scale;
+        var eyeLeftRot = EyeLeft.Rotation + faceDist * 0.5f;
 
         Vector2 eyeRightPos = center + Face.Offset * faceScale + ((EyeRight.Offset + new Vector2(74, -16)) * faceScale).RotatedBy(faceRotation);
         var eyeRightScale = faceScale * EyeRight.Scale;
+        var eyeRightRot = EyeRight.Rotation - faceDist * 0.5f;
 
         var texture = Texture.Value;
         var mouthTexture = MouthTexture.Value;
@@ -252,17 +264,17 @@ public sealed class HushRenderer(NPC nPC)
 
             if (!HideFace)
             {
-                var mouthFrame = mouthTexture.Frame();
+                var mouthFrame = mouthTexture.Frame(1, 3, 0, (int)MouthState);
                 spriteBatch.Draw(mouthTexture, mouthPos, mouthFrame, Color.White, faceRotation + Mouth.Rotation, mouthFrame.Size() / 2, mouthScale, 0, 0);
 
-                int eyeLeftFrameNum = EyeStateLeft == EyeState.Glowing ? 0 : (int)EyeStateLeft;
-                int eyeRightFrameNum = EyeStateRight == EyeState.Glowing ? 0 : (int)EyeStateRight;
+                int eyeLeftFrameNum = EyeStateLeft == EyeAnimationState.Glowing ? 0 : (int)EyeStateLeft;
+                int eyeRightFrameNum = EyeStateRight == EyeAnimationState.Glowing ? 0 : (int)EyeStateRight;
 
                 Rectangle eyeLeftFrame = eyeTexture.Frame(2, 4, 0, eyeLeftFrameNum);
                 Rectangle eyeRightFrame = eyeTexture.Frame(2, 4, 1, eyeRightFrameNum);
 
-                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftFrame, Color.White, faceRotation + EyeLeft.Rotation, eyeLeftFrame.Size() / 2, eyeLeftScale, 0, 0);
-                spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightFrame, Color.White, faceRotation + EyeRight.Rotation, eyeRightFrame.Size() / 2, eyeRightScale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftFrame, Color.White, faceRotation + eyeLeftRot, eyeLeftFrame.Size() / 2, eyeLeftScale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightFrame, Color.White, faceRotation + eyeRightRot, eyeRightFrame.Size() / 2, eyeRightScale, 0, 0);
 
                 spriteBatch.End();
             }
@@ -296,13 +308,13 @@ public sealed class HushRenderer(NPC nPC)
             eyeLeftPos = NPC.Center + DrawOffset + (eyeLeftPos - center) * faceScale - screenPos;
             eyeRightPos = NPC.Center + DrawOffset + (eyeRightPos - center) * faceScale - screenPos;
 
-            if (EyeStateLeft == EyeState.Glowing)
+            if (EyeStateLeft == EyeAnimationState.Glowing)
             {
                 Rectangle eyeLeftGlowFrame = eyeTexture.Frame(2, 4, 0, 3);
-                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftGlowFrame, EyeGlowColor * NPC.Opacity, faceRotation + EyeLeft.Rotation, eyeLeftGlowFrame.Size() / 2, faceScale * EyeLeft.Scale, 0, 0);
-                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftGlowFrame, EyeGlowColor with { A = 0 } * 2f * NPC.Opacity, faceRotation + EyeLeft.Rotation, eyeLeftGlowFrame.Size() / 2, faceScale * EyeLeft.Scale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftGlowFrame, EyeGlowColor * NPC.Opacity, faceRotation + eyeLeftRot, eyeLeftGlowFrame.Size() / 2, faceScale * EyeLeft.Scale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftGlowFrame, EyeGlowColor with { A = 0 } * 2f * NPC.Opacity, faceRotation + eyeRightRot, eyeLeftGlowFrame.Size() / 2, faceScale * EyeLeft.Scale, 0, 0);
             }
-            if (EyeStateRight == EyeState.Glowing)
+            if (EyeStateRight == EyeAnimationState.Glowing)
             {
                 Rectangle eyeRightGlowFrame = eyeTexture.Frame(2, 4, 1, 3);
                 spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightGlowFrame, EyeGlowColor * NPC.Opacity, faceRotation + EyeRight.Rotation, eyeRightGlowFrame.Size() / 2, faceScale * EyeRight.Scale, 0, 0);
