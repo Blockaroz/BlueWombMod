@@ -54,6 +54,10 @@ public sealed class BlueGaper : ModNPC
 
     public override void AI()
     {
+        DrawOffset = Vector2.Zero;
+        DrawScale = Vector2.One;
+        HeadFrame = 0;
+
         if (Mode == 0)
         {
             if (Time > 50)
@@ -89,15 +93,45 @@ public sealed class BlueGaper : ModNPC
 
                 Vector2 direction = NPC.DirectionTo(target.Center).SafeNormalize(Vector2.Zero);
                 NPC.velocity += direction * 0.07f;
+
+                if (DashTime > 0)
+                {
+                    DashTime--;
+
+                    if (DashTime < 30)
+                    {
+                        NPC.velocity *= 0.9f;
+
+                        HeadFrame = 1;
+                        DrawOffset.X = MathF.Sin(Time * 1.5f) * 2f;
+                        float scaleProgress = Utils.GetLerpValue(30, 0, DashTime, true);
+                        DrawScale = new Vector2(1f + scaleProgress * 0.2f, 1f - scaleProgress * 0.2f);
+                    }
+                }
+                else
+                {
+                    NPC.velocity *= 0.2f;
+                    NPC.velocity += (NPC.velocity.SafeNormalize(Vector2.Zero) + direction) * 3f;
+
+                    DashTime--;
+
+                    float scaleProgress = Utils.GetLerpValue(-10, 0, DashTime, true);
+                    DrawScale = new Vector2(1f - scaleProgress * 0.2f, 1f + scaleProgress * 0.4f);
+                    if (DashTime < -10 && Main.netMode != NetmodeID.MultiplayerClient)
+                    {
+                        DashTime = Main.rand.Next(100, 500);
+                        NPC.netUpdate = true;
+                    }
+                }
             }
 
-            NPC.velocity *= 0.98f;
+            NPC.velocity *= 0.98f;    
         }
 
         if (NPC.soundDelay <= 0)
         {
             NPC.soundDelay = (int)(500 * NPC.scale);
-            SoundEngine.PlaySound(SoundID.BloodZombie with { Pitch = -0.5f * NPC.scale }, NPC.Center);
+            SoundEngine.PlaySound(SoundID.BloodZombie with { Pitch = -0.3f * NPC.scale }, NPC.Center);
         }
 
         Time++;
@@ -113,6 +147,9 @@ public sealed class BlueGaper : ModNPC
 
     private Vector2 drawOffset;
     public ref Vector2 DrawOffset => ref drawOffset;
+
+    private Vector2 drawScale;
+    public ref Vector2 DrawScale => ref drawScale;
 
     public override void FindFrame(int frameHeight)
     {
@@ -131,6 +168,8 @@ public sealed class BlueGaper : ModNPC
     {
         if (NPC.IsABestiaryIconDummy)
         {
+            DrawOffset = Vector2.Zero;
+            DrawScale = Vector2.One;
             HeadFrame = 0;
             NPC.direction = 0;
             HeadDirection = 0;
@@ -141,10 +180,10 @@ public sealed class BlueGaper : ModNPC
         Rectangle bodyFrame = texture.Frame(3, 3, (int)NPC.direction + 1, 2);
         Rectangle headFrame = texture.Frame(3, 3, (int)HeadDirection + 1, (int)HeadFrame);
 
-        spriteBatch.Draw(texture, NPC.Center - screenPos, bodyFrame, drawColor, NPC.rotation, bodyFrame.Size() / 2, NPC.scale, 0, 0);
+        spriteBatch.Draw(texture, NPC.Center + DrawOffset - screenPos, bodyFrame, drawColor, NPC.rotation, bodyFrame.Size() / 2, NPC.scale * DrawScale, 0, 0);
 
         Vector2 headOrigin = new Vector2(headFrame.Width / 2, headFrame.Height / 2 + 8);
-        spriteBatch.Draw(texture, NPC.Center - screenPos, headFrame, drawColor, NPC.rotation, headOrigin, NPC.scale, 0, 0);
+        spriteBatch.Draw(texture, NPC.Center + DrawOffset - screenPos, headFrame, drawColor, NPC.rotation, headOrigin, NPC.scale * DrawScale, 0, 0);
 
         return false;
     }
