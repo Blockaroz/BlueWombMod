@@ -33,7 +33,7 @@ public sealed class AttackFly : ModNPC
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(AttackFly)}.FlavorText")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalization($"NPCs.{nameof(AttackFly)}.FlavorText").Key));
     }
 
     public const int STATE_ATTACK = 0;

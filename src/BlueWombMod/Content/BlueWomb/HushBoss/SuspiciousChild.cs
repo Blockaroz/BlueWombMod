@@ -43,7 +43,7 @@ public sealed class SuspiciousChild : ModNPC
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(SuspiciousChild)}.FlavorText")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalization($"NPCs.{nameof(SuspiciousChild)}.FlavorText").Key));
     }
 
     public ref float Time => ref NPC.ai[0];

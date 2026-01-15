@@ -32,7 +32,7 @@ public sealed class BlueGaper : ModNPC
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(BlueGaper)}.FlavorText")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalization($"NPCs.{nameof(BlueGaper)}.FlavorText").Key));
     }
 
     public ref float Time => ref NPC.ai[0];

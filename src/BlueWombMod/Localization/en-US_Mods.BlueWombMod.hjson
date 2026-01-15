@@ -54,11 +54,35 @@ Projectiles: {
 }
 
 NPCs: {
-	SuspiciousChild.DisplayName: ???
-	AttackFly.DisplayName: Attack Fly
-	PooterFly.DisplayName: Pooter
+	SuspiciousChild: {
+		DisplayName: ???
+		FlavorText: "A mirage of a suffocating child from a world in a box, causing despair in those who meddle with it."
+	}
+
+	AttackFly: {
+		DisplayName: Attack Fly
+		FlavorText: "When life stops giving you lemons, nature improvises."
+	}
+
+	PooterFly: {
+		DisplayName: Pooter
+		FlavorText: "As if the nuisance alone wasn't enough, somebody gives them guns."
+	}
+
 	LittleHush.DisplayName: ???
-	Hush.DisplayName: Hush
-	BlueGaper.DisplayName: Blue Gaper
-	HushFly.DisplayName: Hush Fly
+
+	Hush: {
+		DisplayName: Hush
+		FlavorText: "Within the abominous blue mass stands this monster made from the fear of impending doom."
+	}
+
+	BlueGaper: {
+		DisplayName: Blue Gaper
+		FlavorText: "The epitome of the dead womb, a small growth. Its ability to float is a strange adaptation to the environment."
+	}
+
+	HushFly.DisplayName: {
+		DisplayName: Hush Fly
+		FlavorText: "A grotesque emulation of a fly, yet so organized in its motion it may be an insult to nature."
+	}
 }

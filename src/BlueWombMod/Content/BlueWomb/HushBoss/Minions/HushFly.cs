@@ -22,6 +22,7 @@ public sealed class HushFly : ModNPC
         NPC.defense = 10;
         NPC.noGravity = true;
         NPC.knockBackResist = 0.1f;
+        NPC.noTileCollide = true;
 
         NPC.HitSound = SoundID.NPCHit1;
         NPC.DeathSound = SoundID.NPCDeath1 with { Pitch = 0.33f };
@@ -33,12 +34,12 @@ public sealed class HushFly : ModNPC
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"Bestiary.{NPC.TypeName}")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalization($"NPCs.{NPC.TypeName}.FlavorText").Key));
     }
 
-    public ref float State => ref NPC.ai[0];
-    public ref float Time => ref NPC.ai[1];
-    public ref float SpawnTime => ref NPC.ai[2];
+    public ref float LeaderIndex => ref NPC.ai[0];
+    public ref float State => ref NPC.ai[1];
+    public ref float Time => ref NPC.ai[2];
 
     public enum HushFlyShape
     {
@@ -47,6 +48,7 @@ public sealed class HushFly : ModNPC
 
     public override void OnSpawn(IEntitySource source)
     {
+        LeaderIndex = -1;
         NPC.scale *= Main.rand.NextFloat(0.9f, 1.1f);
         NPC.lifeMax = (int)(NPC.lifeMax * NPC.scale);
         NPC.life = NPC.lifeMax;
@@ -60,17 +62,34 @@ public sealed class HushFly : ModNPC
             return;
         }
 
-        NPC.direction = NPC.velocity.X < 0 ? -1 : 1;
-        NPC.rotation = NPC.velocity.X * 0.015f * NPC.scale;
-
-        if (SpawnTime < 20)
+        if (Time < 20)
         {
-            SpawnTime++;
+            NPC.velocity *= 0.95f;
+        }
+        else if (LeaderIndex >= 0 && LeaderIndex < Main.npc.Length)
+        {
+            NPC leader = Main.npc[(int)(LeaderIndex)];
+            if (!leader.active)
+                LeaderIndex = -1;
+
+            else
+                DoShapeAction(leader);
         }
         else
         {
+            NPC.velocity *= 0.9f;
 
+            if (Time % 4 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
+            {
+                NPC.velocity += Main.rand.NextVector2Circular(1, 1) * Main.rand.NextFloat(0.2f);
+                NPC.netUpdate = true;
+            }
         }
+
+        Time++;
+
+        NPC.direction = NPC.velocity.X < 0 ? -1 : 1;
+        NPC.rotation = NPC.velocity.X * 0.015f * NPC.scale;
 
         if (Main.rand.NextBool(50))
         {
@@ -78,6 +97,11 @@ public sealed class HushFly : ModNPC
             var flyParticle = LittleAngryBugParticle.RequestNew(NPC.Center + Main.rand.NextVector2Circular(40, 40), flyVel, Main.rand.Next(100, 200), 1f);
             ParticleEngine.Particles.Add(flyParticle);
         }
+    }
+
+    private void DoShapeAction(NPC leader)
+    {
+
     }
 
     public override void OnKill()
@@ -137,7 +161,7 @@ public sealed class HushFly : ModNPC
 
         Rectangle frame = texture.Frame(1, 4, 0, (int)AnimationFrame);
 
-        float scale = NPC.scale * Utils.GetLerpValue(-5, 15, SpawnTime, true);
+        float scale = NPC.scale * Utils.GetLerpValue(-5, 15, Time, true);
         if (NPC.IsABestiaryIconDummy)
         {
             scale = 1f;

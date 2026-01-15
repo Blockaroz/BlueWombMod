@@ -35,7 +35,7 @@ public sealed class PooterFly : ModNPC
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(PooterFly)}.FlavorText")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalization($"NPCs.{nameof(PooterFly)}.FlavorText").Key));
     }
 
     public ref float ShootTime => ref NPC.ai[0];

@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using Terraria;
 using Terraria.Audio;
+using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -37,25 +38,22 @@ public sealed class HolyWaterTear : ModProjectile
     private int spawnTime;
     public ref int Time => ref spawnTime;
 
+    public override void OnSpawn(IEntitySource source)
+    {
+        HostIndex = -1;
+        MiscTime = Main.rand.Next(30);
+        Projectile.scale *= Main.rand.NextFloat(0.85f, 1.2f);
+    }
+
     public override void AI()
     {
-        if (MiscTime == 0)
+        if (Time < 120 && HostIndex >= 0 && HostIndex < Main.npc.Length)
         {
-            MiscTime = Main.rand.Next(30);
-            Projectile.scale *= Main.rand.NextFloat(0.85f, 1.2f);
-        }
-
-        if (Time < 120 && HostIndex > 0 && HostIndex <= Main.npc.Length)
-        {
-            NPC npc = Main.npc[(int)HostIndex - 1];
-            if (!npc.active)
-            {
+            NPC npc = Main.npc[(int)HostIndex];
+            if (!npc.active || npc.type != ModContent.NPCType<LittleHush>())
                 HostIndex = -1;
-            }
             else
-            {
                 Projectile.Center += npc.velocity * Utils.GetLerpValue(120, 30, Time, true);
-            }
         }
 
         switch (Mode)

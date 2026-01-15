@@ -58,7 +58,7 @@ public sealed partial class Hush : ModNPC
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalizationKey($"NPCs.{nameof(Hush)}.FlavorText")));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalization($"NPCs.{nameof(Hush)}.FlavorText").Key));
     }
 
     public ref float State => ref NPC.ai[0];
