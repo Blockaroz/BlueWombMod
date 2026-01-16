@@ -15,12 +15,12 @@ public sealed class BlueGaper : ModNPC
 {
     public override void SetDefaults()
     {
-        NPC.width = 28;
-        NPC.height = 28;
+        NPC.width = 40;
+        NPC.height = 40;
 
-        NPC.lifeMax = 110;
+        NPC.lifeMax = 90;
         NPC.noGravity = true;
-        NPC.knockBackResist = 0.5f;
+        NPC.knockBackResist = 0.3f;
 
         NPC.HitSound = SoundID.NPCHit1;
         NPC.DeathSound = SoundID.NPCDeath1;
@@ -131,7 +131,7 @@ public sealed class BlueGaper : ModNPC
         if (NPC.soundDelay <= 0)
         {
             NPC.soundDelay = (int)(500 * NPC.scale);
-            SoundEngine.PlaySound(SoundID.BloodZombie with { Pitch = -0.3f * NPC.scale }, NPC.Center);
+            SoundEngine.PlaySound(SoundID.BloodZombie with { Pitch = -0.3f * NPC.scale, SoundLimitBehavior = SoundLimitBehavior.IgnoreNew, MaxInstances = 1 }, NPC.Center);
         }
 
         Time++;

@@ -34,6 +34,7 @@ public sealed partial class Hush : ModNPC
         Sink,
         // Phase 3
         GaperTunnel,
+        RehomeWithBoils,
         Continuum,
         // Phase 4
         Chase,
@@ -88,6 +89,16 @@ public sealed partial class Hush : ModNPC
                 break;
             case (int)BossState.Sink:
                 Interphase_Sink();
+                break;
+
+            case (int)BossState.GaperTunnel:
+                Attack_GaperTunnel();
+                break;
+            case (int)BossState.RehomeWithBoils:
+                Attack_RehomeWithBoils();
+                break;
+            case (int)BossState.Continuum:
+                Attack_Continuum();
                 break;
 
             case (int)BossState.Hemorrhage:
@@ -288,8 +299,13 @@ public sealed partial class Hush : ModNPC
         AttackPool.Add(BossState.EyeRingsSpiraling, 0.5);
         AttackPool.Add(BossState.EyeVolleys, 0.5);
         AttackPool.Add(BossState.MouthSalvos, 0.5);
-        AttackPool.Add(BossState.GapRings, 0.5, Condition_Phase2);
-        AttackPool.Add(BossState.FlyWheels, 0.5, Condition_Phase2, FlyWheelCondition);
+
+        AttackPool.Add(BossState.GapRings, 1.5, Condition_Phase2);
+        AttackPool.Add(BossState.FlyWheels, 2.0, Condition_Phase2, FlyWheelCondition);
+
+        AttackPool.Add(BossState.GaperTunnel, 5.0, Condition_Phase3);
+        AttackPool.Add(BossState.Continuum, 10.0, Condition_Phase3);
+
         AttackPool.Add(BossState.Hemorrhage, 0.5, Condition_Phase4);
     }
 
@@ -310,7 +326,7 @@ public sealed partial class Hush : ModNPC
         }
 
         if (CheckForTarget())
-            State = (int)AttackPool.PickFromTop(-1, 0.2);
+            State = (int)AttackPool.PickFromTop(4, 0.2);
         else
             State = (int)BossState.Despawning;
 
@@ -322,10 +338,6 @@ public sealed partial class Hush : ModNPC
             return false;
 
         float percent = NPC.GetLifePercent();
-        if (Phase == 0)
-            return percent < 0.8f;
-        else
-            return false;
 
         switch (Phase)
         {
@@ -335,9 +347,9 @@ public sealed partial class Hush : ModNPC
             case 1:
                 return percent < 0.6f;
             case 2:
-                return percent < 0.4f;
+                return false;
             case 3:
-                return percent < 0.2f;
+                return false;
         }
     }
 
@@ -352,6 +364,10 @@ public sealed partial class Hush : ModNPC
             case 0:
                 Phase++;
                 State = (int)BossState.SinkRelocate;
+                break;
+            case 1:
+                Phase++;
+                State = (int)BossState.Sink;
                 break;
         }
     }

@@ -155,6 +155,9 @@ public sealed partial class LittleHush : ModNPC
         const int FlyUpTime = 14;
         const int TotalTime = AnticipateTime + FlyUpTime;
 
+        if (Time == 1)
+            KillMyProjectiles();
+
         if (Time < AnticipateTime)
         {
             AnimationFrame = (int)HushyPose.Crouched;
@@ -187,8 +190,6 @@ public sealed partial class LittleHush : ModNPC
         if (Time >= TotalTime)
         {
             NPC.active = false;
-
-            KillMyProjectiles();
 
             if (Main.netMode != NetmodeID.MultiplayerClient)
             {
