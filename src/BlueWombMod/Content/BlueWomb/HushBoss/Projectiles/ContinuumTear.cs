@@ -61,10 +61,13 @@ public sealed class ContinuumTear : ModProjectile
 
         Lighting.AddLight(Projectile.Center, Color.Purple.ToVector3() * Projectile.Opacity);
 
-        float beginCurve = Utils.GetLerpValue(0, 20, Time, true);
-        float wave = MathF.Cos(Time / 18f);
-        Projectile.velocity = OriginalVelocity + perpendicular * (wave * wave * wave - wave) * beginCurve * Curvature;
-        OriginalVelocity = OriginalVelocity.SafeNormalize(Vector2.Zero) * (OriginalVelocity.Length() + 0.002f);
+        if (Time > 30)
+        {
+            float beginCurve = Utils.GetLerpValue(0, 20, Time, true);
+            float wave = MathF.Cos(Time / 18f);
+            Projectile.velocity = Vector2.Lerp(Projectile.velocity, OriginalVelocity, 0.1f) + perpendicular * (wave * wave * wave - wave) * beginCurve * Curvature;
+            OriginalVelocity = OriginalVelocity.SafeNormalize(Vector2.Zero) * (OriginalVelocity.Length() + 0.002f);
+        }
 
         if (Projectile.timeLeft < 60)
         {

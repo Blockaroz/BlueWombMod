@@ -1,5 +1,6 @@
 ﻿using BlueWombMod.Common.Graphics;
 using BlueWombMod.Content.BlueWomb.HushBoss.Drops;
+using BlueWombMod.Content.BlueWomb.HushBoss.Minions;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;

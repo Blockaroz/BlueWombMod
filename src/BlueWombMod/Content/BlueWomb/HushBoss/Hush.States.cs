@@ -25,6 +25,7 @@ public sealed partial class Hush : ModNPC
         // Phase 1
         EyeRings,
         MouthSalvos,
+        EyeVolleys,
         HomingVolleys,
         // Phase 2
         SinkRelocate,
@@ -59,6 +60,7 @@ public sealed partial class Hush : ModNPC
             case (int)BossState.Idle:
                 CheckAndPickAttack();
                 break;
+
             case (int)BossState.EyeRings:
                 Attack_EyeRings();
                 break;
@@ -71,6 +73,7 @@ public sealed partial class Hush : ModNPC
             case (int)BossState.SinkRelocate:
                 Interphase_SinkRelocate();
                 break;
+
             case (int)BossState.FlyWheels:
                 Attack_FlyWheels();
                 break;
@@ -258,8 +261,7 @@ public sealed partial class Hush : ModNPC
             NPC.life = 0;
             NPC.checkDead();
 
-            //BreakRadius();
-            //BuildLootBox();
+            // BuildLootBox();
         }
     }
 

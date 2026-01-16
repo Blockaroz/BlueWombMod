@@ -44,26 +44,21 @@ public sealed class WeightedAttackPool<T> where T : notnull
         var random = new WeightedRandom<AttackDefinition>(Main.rand);
 
         var i = 0;
-        if (count < 1)
+        if (count < 1 || count >= Attacks.Count)
         {
-            count = Attacks.Count;
-        }
-
-        if (count > Attacks.Count)
-        {
-            count = Attacks.Count;
+            count = Attacks.Count - 1;
         }
 
         while (count > 0)
         {
-            if (Attacks[i].Include.All(x => x.Invoke()))
+            if (Attacks[i].Weight > 0 && Attacks[i].Include.All(x => x.Invoke()))
             {
                 count--;
                 Attacks[i].CanBePicked = true;
                 random.Add(Attacks[i], Attacks[i].PickChance * Attacks[i].Weight);
             }
 
-            if (++i > Attacks.Count)
+            if (++i >= Attacks.Count)
             {
                 break;
             }
@@ -89,7 +84,7 @@ public sealed class WeightedAttackPool<T> where T : notnull
             }
         }
 
-        pickedAttack.PickChance -= weightAdjustment;
+        pickedAttack.PickChance = Math.Max(pickedAttack.PickChance - weightAdjustment, 0);
 
         Attacks.Add(pickedAttack);
 

@@ -53,7 +53,7 @@ public sealed class HushFly : ModNPC
     public ref float Position => ref NPC.ai[1];
     public ref float Time => ref NPC.ai[2];
 
-    public ref float WheelTime => ref NPC.localAI[1];
+    public ref float WheelTime => ref NPC.ai[3];
 
     public override void OnSpawn(IEntitySource source)
     {
@@ -69,6 +69,11 @@ public sealed class HushFly : ModNPC
         {
             NPC.velocity *= 0.2f;
             return;
+        }
+
+        if (Time == 0)
+        {
+            NPC.direction = NPC.velocity.X > 0 ? 1 : -1;
         }
 
         if (LeaderIndex >= 0 && LeaderIndex < Main.npc.Length)
@@ -115,7 +120,6 @@ public sealed class HushFly : ModNPC
         
         Time++;
 
-        NPC.direction = NPC.velocity.X < 0 ? -1 : 1;
         NPC.rotation = NPC.velocity.X * 0.015f * NPC.scale;
     }
 
@@ -123,16 +127,22 @@ public sealed class HushFly : ModNPC
     {
         if (leader is null)
             return;
-        if (leader.type == ModContent.NPCType<Hush>())
+
+        float spawnTime = Utils.GetLerpValue(0, 80, Time, true);
+
+        if (leader.ModNPC is Hush hush)
         {
-            NPC.active = false;
+            Vector2 targetPosition = leader.Center + new Vector2(leader.width, leader.height).RotatedBy(WheelTime * 0.02f * NPC.direction) * 0.55f;
+            NPC.velocity *= 0.98f;
+            NPC.velocity += (targetPosition - NPC.Center) * 0.002f * spawnTime;
+
+            WheelTime++;
         }
-        else if (leader.type == ModContent.NPCType<HushFlyLeader>())
+        else if (leader.ModNPC is HushFlyLeader flyLeader)
         {
-            var shape = leader.ai[0];
-            float spinTime = leader.ai[1];
-            float siblingCount = leader.ai[2];
-            float spawnTime = Utils.GetLerpValue(0, 80, Time, true);
+            var shape = flyLeader.Shape;
+            float spinTime = flyLeader.SpinTime;
+            float siblingCount = flyLeader.Children;
 
             Vector2 targetPosition = leader.Center;
             if (siblingCount > 0)
@@ -318,7 +328,10 @@ public sealed class HushFlyLeader : ModNPC
 
         Children = children;
 
-        if (Time < 600 || Children <= 0)
+        if (Children < 5)
+            Shape = (int)HushFly.HushFlyShape.Circle;
+
+        if (Time < 357 || Children <= 0)
         {
             if (Children > 0)
             {

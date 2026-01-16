@@ -11,7 +11,6 @@ using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.Utilities;
-using static BlueWombMod.Content.BlueWomb.HushBoss.LittleHush;
 
 namespace BlueWombMod.Content.BlueWomb.HushBoss;
 
@@ -21,8 +20,13 @@ public sealed partial class Hush : ModNPC
 
     public bool CheckForTarget()
     {
-        var result = NPCUtils.SearchForTarget(NPC, NPCUtils.TargetSearchFlag.Players, Hush.TargetOnlyPlayersInWomb);
-        NPC.target = result.NearestTargetIndex;
+        var results = NPCUtils.SearchForTarget(NPC, NPCUtils.TargetSearchFlag.Players, Hush.TargetOnlyPlayersInWomb);
+
+        if (results.FoundTarget)
+        {
+            NPC.target = results.NearestTargetIndex;
+            NPC.targetRect = results.NearestTargetHitbox;
+        }
 
         if (NPC.GetTargetData().Invalid)
         {
@@ -36,29 +40,45 @@ public sealed partial class Hush : ModNPC
         return true;
     }
 
+    public void FaceTarget()
+    {
+        var target = NPC.GetTargetData();
+        if (!target.Invalid)
+            NPC.direction = NPC.Center.X > target.Center.X ? -1 : 1;
+    }
+
     public void EndAttack()
     {
         Time = 0;
         MiscTime = 0;
-        State = (int)BossState.Idle;
+
+        CheckAndPickAttack();
     }
 
     public int GlowTearType { get; private set => field = Math.Abs(value % 3); }
 
     public Vector2 TargetPosition { get; set; }
 
+    public int EyeRingType { get; private set => field = Math.Abs(value % 3); }
+
+    public enum EyeRingPattern
+    {
+        Alternating,
+        Spiraling,
+        Straight,
+    }
+
     public void Attack_EyeRings()
     {
         const int StartUpTime = 15;
         int WaveCount = 8;
         const int ShootTime = 24;
-        int TotalTime = StartUpTime + WaveCount * ShootTime + 140;
-
-        if (Time == 0)
-            NPC.FaceTarget();
+        int TotalTime = StartUpTime + WaveCount * ShootTime + 180;
 
         if (Time < StartUpTime)
         {
+            NPC.FaceTarget();
+
             Renderer.Blink();
 
             float progress = Utils.GetLerpValue(0, StartUpTime * 0.8f, Time, true);
@@ -70,7 +90,7 @@ public sealed partial class Hush : ModNPC
         else if (Time < StartUpTime + WaveCount * ShootTime)
         {
             int localTime = (int)(Time - StartUpTime) % ShootTime;
-            int eyeSide = (MathF.Floor((float)(Time - StartUpTime) / ShootTime) % 2) == 0 ? 1 : -1;
+            int eyeSide = ((MathF.Floor((float)(Time - StartUpTime) / ShootTime) % 2) == 0 ? 1 : -1) * NPC.direction;
 
             Vector2 unsquish = Vector2.Lerp(Vector2.One, new Vector2(1.1f, 0.9f), Utils.GetLerpValue(StartUpTime + 10, StartUpTime, Time, true));
             float wobble = Utils.PingPongFrom01To010((float)localTime / ShootTime);
@@ -89,9 +109,16 @@ public sealed partial class Hush : ModNPC
             Color color = GlowingEyeTear.GetColorFromType(GlowTearType) * Utils.GetLerpValue(ShootTime, ShootTime / 1.5f, localTime, true);
 
             if (eyeSide < 0)
+            {
+                Renderer.BlinkRight();
                 Renderer.GlowLeft(color);
+            }
             else
+            {
+                Renderer.BlinkLeft();
                 Renderer.GlowRight(color);
+            }
+
 
             if (localTime == 5)
             {
@@ -100,7 +127,7 @@ public sealed partial class Hush : ModNPC
                 if (Main.netMode != NetmodeID.MultiplayerClient)
                 {
                     float curl = Utils.GetLerpValue(0, WaveCount * ShootTime, Time - StartUpTime, true);
-                    int count = (int)(10 + 8 * curl);
+                    int count = (int)(12 + 4 * curl);
                     for (int i = 0; i < count; i++)
                     {
                         Vector2 direction = new Vector2(0, -2.4f - curl * 0.1f).RotatedBy((float)i / count * MathHelper.TwoPi + Time * 0.01f);
@@ -124,8 +151,8 @@ public sealed partial class Hush : ModNPC
 
     public void Attack_MouthSalvos()
     {
-        const int StartUpTime = 22;
-        const int SalvoTime = 17;
+        const int StartUpTime = 32;
+        const int SalvoTime = 27;
         const int Repeats = 3;
         const int TotalTime = StartUpTime + SalvoTime + 24;
         const int FullAttackTime = TotalTime * Repeats + 60;
@@ -152,7 +179,7 @@ public sealed partial class Hush : ModNPC
             if (localTime < StartUpTime)
             {
                 if (!target.Invalid)
-                    TargetPosition = Vector2.Lerp(TargetPosition, target.Center, 0.2f);
+                    TargetPosition = Vector2.Lerp(TargetPosition, target.Center + target.Velocity * 12f, 0.2f);
 
                 float moveFaceProgress = MathF.Sqrt(Utils.GetLerpValue(0, StartUpTime, Time, true));
                 Renderer.Face.Rotation = Utils.AngleLerp(0, NPC.AngleTo(TargetPosition) - MathHelper.PiOver2, moveFaceProgress);
@@ -215,7 +242,7 @@ public sealed partial class Hush : ModNPC
                 else
                 {
                     if (!target.Invalid)
-                        TargetPosition = Vector2.Lerp(TargetPosition, target.Center, 0.2f);
+                        TargetPosition = Vector2.Lerp(TargetPosition, target.Center + target.Velocity * 2f, 0.2f);
                 }
             }
         }
@@ -327,7 +354,7 @@ public sealed partial class Hush : ModNPC
 
     public void Interphase_SinkRelocate()
     {
-        const int SinkTime = 100;
+        const int SinkTime = 300;
         const int ConfirmationTime = 10;
 
         NPC.takenDamageMultiplier = 0.2f;
@@ -458,16 +485,6 @@ public sealed partial class Hush : ModNPC
 
                 if (Main.netMode != NetmodeID.MultiplayerClient)
                 {
-                    int orbitCount = 0;
-                    foreach (NPC npc in Main.ActiveNPCs)
-                    {
-                        if (npc.ModNPC is HushFly hushFly)
-                        {
-                            if (hushFly.LeaderIndex == NPC.whoAmI)
-                                orbitCount++;
-                        }
-                    }
-
                     int flyNumber = (int)MathF.Floor((Time - AhTime) / ChooTime);
 
                     if (flyNumber == 0)
@@ -486,15 +503,28 @@ public sealed partial class Hush : ModNPC
                     }
 
                     NPC fly = NPC.NewNPCDirect(NPC.GetSource_FromThis(), nosePosition, ModContent.NPCType<HushFly>());
-                    fly.velocity = new Vector2(0, Main.rand.NextFloat(3f, 7f)).RotatedByRandom(1f);
+                    fly.velocity = new Vector2(0, Main.rand.NextFloat(10f, 15f)).RotatedByRandom(1f);
                     fly.ai[0] = FlyLeaderIndex;
 
-                    if (flyNumber % 2 == 1 && orbitCount < 20)
+                    int orbiterFlyCount = 0;
+
+                    foreach (NPC npc in Main.ActiveNPCs)
+                    {
+                        if (npc.ModNPC is HushFly hushFly)
+                        {
+                            if (hushFly.LeaderIndex == NPC.whoAmI)
+                            {
+                                orbiterFlyCount++;
+                            }
+                        }
+                    }
+
+                    if (flyNumber % 4 == 2 && orbiterFlyCount < 12)
                     {
                         NPC orbitFly = NPC.NewNPCDirect(NPC.GetSource_FromThis(), nosePosition, ModContent.NPCType<HushFly>());
-                        orbitFly.velocity = new Vector2(0, Main.rand.NextFloat(5f, 15f)).RotatedByRandom(1f);
+                        orbitFly.velocity = new Vector2(0, Main.rand.NextFloat(1f, 5f)).RotatedByRandom(2f);
                         orbitFly.ai[0] = NPC.whoAmI;
-                        orbitFly.ai[1] = (int)MathF.Floor(flyNumber / 2f);
+                        orbitFly.ai[1] = orbiterFlyCount;
                         orbitFly.ai[2] = Time - AhTime - 30;
                     }
                 }
@@ -503,7 +533,7 @@ public sealed partial class Hush : ModNPC
 
         Renderer.DrawOffset.Y -= (Renderer.DrawScale.Y - 1f) * 50;
 
-        if (Time >= TotalTime + 90)
+        if (Time >= TotalTime + 134)
         {
             EndAttack();
             return;
@@ -517,20 +547,17 @@ public sealed partial class Hush : ModNPC
         const int StartUpTime = 15;
         int WaveCount = 3;
         const int ShootTime = 64;
-        int TotalTime = StartUpTime + WaveCount * ShootTime + 140;
+        int TotalTime = StartUpTime + WaveCount * ShootTime + 180;
 
         NPCAimedTarget target = NPC.GetTargetData();
-
-        if (Time == 0)
-        {
-            NPC.FaceTarget();
-        }
 
         if (!target.Invalid)
             TargetPosition = target.Center;
 
         if (Time < StartUpTime)
         {
+            NPC.FaceTarget();
+
             Renderer.Blink();
 
             float progress = Utils.GetLerpValue(0, StartUpTime * 0.8f, Time, true);
@@ -542,7 +569,7 @@ public sealed partial class Hush : ModNPC
         else if (Time < StartUpTime + WaveCount * ShootTime)
         {
             int localTime = (int)(Time - StartUpTime) % ShootTime;
-            int eyeSide = (MathF.Floor((float)(Time - StartUpTime) / ShootTime) % 2) == 0 ? 1 : -1;
+            int eyeSide = NPC.direction;
 
             Vector2 unsquish = Vector2.Lerp(Vector2.One, new Vector2(1.1f, 0.9f), Utils.GetLerpValue(StartUpTime + 10, StartUpTime, Time, true));
             float wobble = Utils.PingPongFrom01To010((float)localTime / ShootTime);
@@ -572,11 +599,11 @@ public sealed partial class Hush : ModNPC
                 if (Main.netMode != NetmodeID.MultiplayerClient)
                 {
                     float curl = Main.rand.NextFloat(-0.5f, 0.5f);
-                    int count = (int)(30 + 4 * curl);
+                    int count = (int)(24 + 4 * curl);
                     float randomOffset = Main.rand.NextFloat(-0.2f, 0.2f);
                     for (int i = 0; i < count; i++)
                     {
-                        Vector2 direction = new Vector2(1.5f + curl * 0.2f, 0).RotatedBy((float)(i + 1) / (count + 2) * MathHelper.TwoPi);
+                        Vector2 direction = new Vector2(1.5f + curl * 0.2f, 0).RotatedBy((float)(i + 1) / (count + 4) * MathHelper.TwoPi);
                         direction = direction.RotatedBy(NPC.AngleTo(TargetPosition) + randomOffset);
                         Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), position, direction, ModContent.ProjectileType<GlowingEyeTear>(), 30, 0f);
                         glowTear.ai[1] = curl * 0.015f * eyeSide;
@@ -586,8 +613,7 @@ public sealed partial class Hush : ModNPC
             }
         }
         else
-        {
-        }
+            Renderer.Blink();
 
         if (Time >= TotalTime)
         {
