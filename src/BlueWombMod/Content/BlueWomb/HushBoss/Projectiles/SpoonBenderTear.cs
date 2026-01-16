@@ -36,13 +36,14 @@ public sealed class SpoonBenderTear : ModProjectile
     public override void OnSpawn(IEntitySource source)
     {
         HostIndex = -1;
+        Projectile.netUpdate = true;
     }
 
     public override void AI()
     {
         if (HostIndex >= 0 && HostIndex < Main.npc.Length)
         {
-            NPC npc = Main.npc[(int)HostIndex - 1];
+            NPC npc = Main.npc[(int)HostIndex];
             if (npc.active && npc.life > 5 && !npc.friendly)
             {
                 NPCAimedTarget target = npc.GetTargetData();

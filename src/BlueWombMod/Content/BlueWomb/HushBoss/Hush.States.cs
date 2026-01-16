@@ -68,7 +68,6 @@ public sealed partial class Hush : ModNPC
                 Attack_MouthSalvos();
                 break;
             case (int)BossState.HomingVolleys:
-                Attack_HomingVolleys();
                 break;
             case (int)BossState.SinkRelocate:
                 Interphase_SinkRelocate();
@@ -79,6 +78,9 @@ public sealed partial class Hush : ModNPC
                 break;
             case (int)BossState.GapRings:
                 Attack_GapRings();
+
+            case (int)BossState.Hemorrhage:
+                Attack_Hemorrhage();
                 break;
         }
     }

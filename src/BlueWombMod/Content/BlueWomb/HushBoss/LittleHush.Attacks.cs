@@ -190,7 +190,7 @@ public sealed partial class LittleHush : ModNPC
                     Vector2 velocity = NPC.DirectionTo(target.Center) * Main.rand.NextFloat(2f, 3f);
                     velocity = velocity.RotatedByRandom(0.3f) * 2f - Vector2.UnitY * (Main.rand.NextFloat(3f, 5f) + distanceToTarget * 0.01f);
                     var tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, velocity, ModContent.ProjectileType<BloodTear>(), 40, 0f);
-                    tear.ai[1] = 1;
+                    tear.ai[1] = (int)BloodTear.Behavior.Fall;
                     tear.ai[2] = Main.rand.NextFloat(0.8f, 1.2f);
                 }
             }
@@ -477,7 +477,7 @@ public sealed partial class LittleHush : ModNPC
                         Vector2 direction = new Vector2(4.5f + percent * 2f * Main.rand.NextFloat()).RotatedBy((float)i / tearProfile.TearsPerWave * MathHelper.TwoPi - curl * completeDirection);
                         Projectile tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, direction, ModContent.ProjectileType<HolyWaterTear>(), 20, 0.1f);
                         tear.ai[0] = NPC.whoAmI;
-                        tear.ai[1] = altWave ? 1 : 0;
+                        tear.ai[1] = altWave ? (int)HolyWaterTear.Behavior.SlowDown : 0;
                         tear.ai[2] = 0.02f * Main.rand.NextFloat(-1f, 1f) * completeDirection;
                         tear.timeLeft = altWave ? Main.rand.Next(120, 200) : 240;
                     }
@@ -558,7 +558,6 @@ public sealed partial class LittleHush : ModNPC
                         Vector2 direction = new Vector2(-1, 6f + percent * Main.rand.NextFloat(0.5f)).RotatedBy((float)i / tearProfile.TearsPerWave * MathHelper.TwoPi);
                         Projectile tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, direction, ModContent.ProjectileType<HolyWaterTear>(), 20, 0.1f);
                         tear.ai[0] = NPC.whoAmI;
-                        tear.ai[1] = 0;
                         tear.ai[2] = -0.01f * completeDirection;
                         tear.timeLeft = altWave ? Main.rand.Next(120, 200) : 240;
                     }
@@ -705,7 +704,7 @@ public sealed partial class LittleHush : ModNPC
                     Vector2 velocity = new Vector2(0, 8f).RotatedBy((float)i / tearCount * MathHelper.TwoPi + randRot);
                     Projectile tear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, velocity, ModContent.ProjectileType<HolyWaterTear>(), 20, 0.1f);
                     tear.ai[0] = NPC.whoAmI;
-                    tear.ai[1] = 2;
+                    tear.ai[1] = (int)HolyWaterTear.Behavior.Split;
                     tear.timeLeft = 70;
                 }
             }

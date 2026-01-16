@@ -100,7 +100,7 @@ public sealed class ContinuumTear : ModProjectile
                     pt.X -= dir.X * 2;
                     pt.Y -= dir.Y * 2;
 
-                    if (Main.netMode != NetmodeID.MultiplayerClient)
+                    if (Main.myPlayer == Projectile.owner)
                     {
                         var tear = Projectile.NewProjectileDirect(Projectile.GetItemSource_FromThis(), pt.ToWorldCoordinates(), OriginalVelocity, Type, Projectile.damage, Projectile.knockBack);
                         tear.ai[1] = Projectile.ai[1];

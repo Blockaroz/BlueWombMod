@@ -26,11 +26,18 @@ public sealed class BloodTear : ModProjectile
 
     public ref float Time => ref Projectile.ai[0];
 
-    public ref float Mode => ref Projectile.ai[1];
+    public ref float BehaviorMode => ref Projectile.ai[1];
 
     public ref float Weight => ref Projectile.ai[2];
 
     public ref float MiscTime => ref Projectile.localAI[0];
+
+    public enum Behavior
+    {
+        Forward,
+        Fall,
+        BigSplit
+    }
 
     public override void OnSpawn(IEntitySource source)
     {
@@ -40,22 +47,22 @@ public sealed class BloodTear : ModProjectile
 
     public override void AI()
     {
-        switch (Mode)
+        switch (BehaviorMode)
         {
             default:
-            case 0: // Fly forward
+            case (int)Behavior.Forward:
 
                 Projectile.velocity *= 1f - Weight * 0.1f;
 
                 break;
 
-            case 1: // Fall and shrink
+            case (int)Behavior.Fall:
 
                 Projectile.velocity.Y += 0.2f * Weight;
 
                 break;
 
-            case 2: // Large and split on death
+            case (int)Behavior.BigSplit:
 
                 if (Time == 0)
                 {
@@ -98,7 +105,7 @@ public sealed class BloodTear : ModProjectile
             bleed.noGravity = true;
         }
 
-        if (Main.netMode != NetmodeID.MultiplayerClient && Mode == 2)
+        if (Main.myPlayer == Projectile.owner && BehaviorMode == 2)
         {
             float randRot = Main.rand.NextFloat(-1f, 1f);
             for (int i = 0; i < 4; i++)
@@ -115,7 +122,7 @@ public sealed class BloodTear : ModProjectile
         Texture2D texture = TextureAssets.Projectile[Type].Value;
 
         float scale = Utils.GetLerpValue(0, 8 * Projectile.scale, Time, true);
-        bool large = Mode == 2;
+        bool large = BehaviorMode == 2;
 
         Texture2D glow = Assets.Textures.GlowBig.Value;
         float glowScale = Projectile.scale * scale * 0.25f * (large ? 1f : 0.6f);

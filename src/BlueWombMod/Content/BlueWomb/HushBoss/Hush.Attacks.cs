@@ -267,7 +267,7 @@ public sealed partial class Hush : ModNPC
         Time++;
     }
 
-    public void Attack_HomingVolleys()
+    public void Attack_Hemorrhage()
     {
         const int ChargeTime = 20;
         const int VolleyTime = 30;
@@ -327,14 +327,13 @@ public sealed partial class Hush : ModNPC
 
                     if (Main.netMode != NetmodeID.MultiplayerClient)
                     {
-                        for (int i = 0; i < 5; i++)
+                        for (int i = 0; i < 3; i++)
                         {
-                            Vector2 direction = -Vector2.UnitY.RotatedBy(i / 5f * MathHelper.TwoPi);
+                            Vector2 direction = -Vector2.UnitY.RotatedBy(i / 3f * MathHelper.TwoPi);
                              
                             Vector2 velocity = direction.RotatedByRandom(0.2f) * 2f + Vector2.UnitY * 4f;
-                            Projectile homing = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), mouthPos, velocity, ModContent.ProjectileType<SpoonBenderTear>(), 40, 0f);
-                            homing.ai[0] = NPC.whoAmI + 1;
-                            homing.scale *= Main.rand.NextFloat(0.9f, 1.12f);
+                            Projectile bloodSplitter = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), mouthPos, velocity, ModContent.ProjectileType<BloodTear>(), 60, 0f);
+                            bloodSplitter.ai[1] = (int)BloodTear.Behavior.BigSplit;
                         }
                     }
                 }

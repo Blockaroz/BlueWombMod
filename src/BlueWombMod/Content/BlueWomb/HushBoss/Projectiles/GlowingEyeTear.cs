@@ -26,7 +26,7 @@ public sealed class GlowingEyeTear : ModProjectile
         Projectile.timeLeft = 1000;
     }
 
-    public ref float Mode => ref Projectile.ai[0];
+    public ref float BehaviorMode => ref Projectile.ai[0];
 
     public ref float TearColorType => ref Projectile.localAI[0];
 
@@ -48,6 +48,14 @@ public sealed class GlowingEyeTear : ModProjectile
         };
     }
 
+    public enum Behavior
+    {
+        Forward,
+        VelocityLoss,
+        VelocityGain,
+        BurstSpeed,
+    }
+
     public override void AI()
     {
         if (MiscTime == 0)
@@ -63,10 +71,17 @@ public sealed class GlowingEyeTear : ModProjectile
             Projectile.velocity *= 0.99f;
         }
 
-        switch (Mode)
+        switch (BehaviorMode)
         {
+
             default:
-            case 0: // Lose velocity
+            case (int)Behavior.Forward:
+
+                Curvature *= 0.998f;
+
+                break;
+
+            case (int)Behavior.VelocityLoss:
 
                 if (Projectile.velocity.Length() > 2.5f)
                     Projectile.velocity *= 0.995f;
@@ -75,7 +90,7 @@ public sealed class GlowingEyeTear : ModProjectile
 
                 break;
 
-            case 1: // Gain velocity
+            case (int)Behavior.VelocityGain:
 
                 if (Projectile.velocity.Length() < 18f)
                     Projectile.velocity *= 1.0012f;
@@ -84,13 +99,7 @@ public sealed class GlowingEyeTear : ModProjectile
 
                 break;
 
-            case 2: // Retain velocity
-
-                Curvature *= 0.998f;
-
-                break;
-
-            case 3: // Slow and burst speed
+            case (int)Behavior.BurstSpeed:
                 Projectile.velocity *= 0.993f;
                 if (Projectile.velocity.Length() < 1f)
                     Projectile.velocity *= 15f;
