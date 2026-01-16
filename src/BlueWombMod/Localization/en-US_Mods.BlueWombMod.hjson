@@ -82,12 +82,9 @@ NPCs: {
 	}
 
 	HushFly: {
-		DisplayName: {
-			DisplayName: Hush Fly
-			FlavorText: A grotesque emulation of a fly, yet so organized in its motion it may be an insult to nature.
-		}
+		DisplayName: Hush Fly
+		FlavorText: A grotesque emulation of a fly, yet so organized in its motion it may be an insult to nature.
 	}
 
-	"Hush Fly.FlavorText": Mods.BlueWombMod.NPCs.Hush Fly.FlavorText
 	HushFlyLeader.DisplayName: Hush Fly Leader
 }

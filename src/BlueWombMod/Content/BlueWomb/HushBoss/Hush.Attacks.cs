@@ -398,7 +398,7 @@ public sealed partial class Hush : ModNPC
     {
         const int AhTime = 58;
         const int ChooTime = 3;
-        const int FlyCount = 13;
+        const int FlyCount = 14;
         const int TotalTime = AhTime + ChooTime * FlyCount;
 
         if (Time < AhTime)
@@ -474,6 +474,13 @@ public sealed partial class Hush : ModNPC
                     {
                         NPC flyLeader = NPC.NewNPCDirect(NPC.GetSource_FromThis(), nosePosition, ModContent.NPCType<HushFlyLeader>());
                         flyLeader.velocity = new Vector2(0, Main.rand.NextFloat(3f, 7f)).RotatedByRandom(1f);
+                        flyLeader.ai[0] = (int)Main.rand.Next([
+                            HushFly.HushFlyShape.Circle,
+                            HushFly.HushFlyShape.Triangle,
+                            HushFly.HushFlyShape.Square,
+                            HushFly.HushFlyShape.Pentagon,
+                            HushFly.HushFlyShape.Star
+                            ]);
 
                         FlyLeaderIndex = flyLeader.whoAmI;
                     }

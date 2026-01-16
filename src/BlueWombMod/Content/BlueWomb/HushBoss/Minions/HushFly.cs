@@ -3,6 +3,7 @@ using BlueWombMod.Content.Particles;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Graphics;
+using System;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.GameContent;
@@ -16,10 +17,10 @@ public sealed class HushFly : ModNPC
 {
     public override void SetDefaults()
     {
-        NPC.width = 28;
-        NPC.height = 28;
+        NPC.width = 22;
+        NPC.height = 22;
 
-        NPC.lifeMax = 150;
+        NPC.lifeMax = 80;
         NPC.defense = 10;
         NPC.noGravity = true;
         NPC.knockBackResist = 0.1f;
@@ -28,14 +29,14 @@ public sealed class HushFly : ModNPC
         NPC.HitSound = SoundID.NPCHit1;
         NPC.DeathSound = SoundID.NPCDeath1 with { Pitch = 0.33f };
 
-        NPC.damage = 30;
+        NPC.damage = 40;
 
         SpawnModBiomes = [ModContent.GetInstance<BlueWombBiome>().Type];
     }
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {
-        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalization($"NPCs.{NPC.TypeName}.FlavorText").Key));
+        bestiaryEntry.AddTags(new FlavorTextBestiaryInfoElement(Mod.GetLocalization($"NPCs.{nameof(HushFly)}.FlavorText").Key));
     }
 
     public enum HushFlyShape
@@ -57,10 +58,8 @@ public sealed class HushFly : ModNPC
     public override void OnSpawn(IEntitySource source)
     {
         LeaderIndex = -1;
-        NPC.scale *= Main.rand.NextFloat(0.9f, 1.1f);
-        NPC.lifeMax = (int)(NPC.lifeMax * NPC.scale);
-        NPC.life = NPC.lifeMax;
 
+        NPC.scale *= Main.rand.NextFloat(0.8f, 1.15f);
         NPC.netUpdate = true;
     }
 
@@ -90,7 +89,7 @@ public sealed class HushFly : ModNPC
                 Position = -1;
             }
 
-            NPC.velocity *= 0.98f;
+            NPC.velocity *= 0.97f;
 
             if (Time % 4 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
             {
@@ -99,9 +98,11 @@ public sealed class HushFly : ModNPC
             }
 
             NPC.dontTakeDamage = true;
-            NPC.Opacity = Utils.GetLerpValue(100, 20, Time, true);
+            NPC.damage = 0;
 
-            if (Time > 100)
+            NPC.Opacity = Utils.GetLerpValue(60, 20, Time, true);
+
+            if (Time > 60)
                 NPC.active = false;
         }
 
@@ -131,26 +132,73 @@ public sealed class HushFly : ModNPC
             var shape = leader.ai[0];
             float spinTime = leader.ai[1];
             float siblingCount = leader.ai[2];
+            float spawnTime = Utils.GetLerpValue(0, 80, Time, true);
 
             Vector2 targetPosition = leader.Center;
-            switch (shape)
+            if (siblingCount > 0)
             {
-                default:
-                case (int)HushFlyShape.Orbit:
-                case (int)HushFlyShape.Circle:
+                switch (shape)
+                {
+                    default:
+                    case (int)HushFlyShape.Orbit:
+                    case (int)HushFlyShape.Circle:
 
-                    if (siblingCount > 0)
-                        targetPosition += new Vector2(0, 30 + siblingCount * 2).RotatedBy(spinTime * 0.01f + Position / siblingCount * MathHelper.TwoPi);
-                    NPC.velocity = (targetPosition - NPC.Center) * 0.3f;
+                        targetPosition += new Vector2(0f, 40f + siblingCount * 2f).RotatedBy(spinTime * 0.07f - Position / siblingCount * MathHelper.TwoPi);
 
-                    break;
+                        break;
+                    case (int)HushFlyShape.Triangle:
+
+                        float angle = spinTime * 0.025f + Position / siblingCount * MathHelper.TwoPi;
+                        targetPosition += new Vector2(0f, GetPolygonRadius(sides: 3, angle) * (60f + siblingCount * 2)).RotatedBy(angle + spinTime * 0.004f);
+
+                        break;
+                    case (int)HushFlyShape.Square:
+
+                        angle = -spinTime * 0.04f + Position / siblingCount * MathHelper.TwoPi;
+                        targetPosition += new Vector2(0f, GetPolygonRadius(sides: 4, angle) * (50f + siblingCount * 2)).RotatedBy(angle + spinTime * 0.003f);
+
+                        break;
+                    case (int)HushFlyShape.Pentagon:
+
+                        angle = -spinTime * 0.04f + Position / siblingCount * MathHelper.TwoPi;
+                        targetPosition += new Vector2(0f, GetPolygonRadius(sides: 5, angle) * (50f + siblingCount * 2)).RotatedBy(angle - spinTime * 0.001f);
+
+                        break;
+                    case (int)HushFlyShape.Star:
+
+                        angle = spinTime * 0.06f - Position / siblingCount * MathHelper.TwoPi;
+                        targetPosition += new Vector2(0f, GetStarRadius(points: 5, angle, squashIn: 3.15f) * (70f + siblingCount * 2)).RotatedBy(angle - spinTime * 0.003f);
+
+                        break;
+                }
             }
+
+            NPC.velocity *= 0.8f;
+            NPC.velocity += (targetPosition - NPC.Center) * 0.05f * spawnTime;
+
         }
         else
         {
             LeaderIndex = -1;
             Time = 0;
         }
+    }
+
+    // from https://www.desmos.com/calculator/d9zrtkf7rx
+
+    private float GetPolygonRadius(float sides, float theta)
+    {
+        float numerator = MathF.Cos(MathHelper.Pi / sides);
+        float denominator = MathF.Cos(theta - (MathHelper.TwoPi / sides) * MathF.Floor((sides * theta + MathHelper.Pi) / MathHelper.TwoPi));
+        return numerator / denominator; 
+    }
+
+    private float GetStarRadius(float points, float theta, float squashIn = 2.5f)
+    {
+        const float sharpness = 1f;
+        float numerator = MathF.Cos((2f * MathF.Asin(sharpness) + MathHelper.Pi * squashIn) / (2 * points));
+        float denominator = MathF.Cos((2f * MathF.Asin(sharpness * MathF.Cos(points * theta)) + MathHelper.Pi * squashIn) / (2 * points));
+        return numerator / denominator;
     }
 
     public override void OnKill()
@@ -270,27 +318,36 @@ public sealed class HushFlyLeader : ModNPC
 
         Children = children;
 
-        if (Children > 0 && Time < 600)
+        if (Time < 600 || Children <= 0)
         {
-            NPC.timeLeft = 60;
-
-            if (Time % 15 == 0)
+            if (Children > 0)
             {
-                NPC.TargetClosest();
-                var target = NPC.GetTargetData();
-                if (!target.Invalid)
+                NPC.timeLeft = 60;
+
+                if (Time % 15 == 0)
                 {
-                    NPC.velocity = Vector2.Lerp(NPC.velocity, NPC.DirectionTo(target.Center), 0.67f).SafeNormalize(Vector2.Zero) * 3f;
+                    NPC.TargetClosest();
+                    var target = NPC.GetTargetData();
+                    if (!target.Invalid)
+                    {
+                        NPC.velocity = Vector2.Lerp(NPC.velocity, NPC.DirectionTo(target.Center), 0.67f).SafeNormalize(Vector2.Zero) * 3f;
+                    }
                 }
+            }
+            else
+            {
+                NPC.timeLeft--;
+
+                if (NPC.timeLeft <= 0)
+                    NPC.active = false;
             }
         }
         else
         {
-            NPC.timeLeft--;
-
-            if (NPC.timeLeft <= 0)
+            if (Collision.SolidCollision(NPC.position, NPC.width, NPC.height))
                 NPC.active = false;
         }
+
 
         Time++;
     }
@@ -312,7 +369,7 @@ public sealed class HushFlyLeader : ModNPC
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
-        Utils.DrawBorderString(spriteBatch, "+", NPC.Center - screenPos, Color.White, anchorx: 0.5f, anchory: 0.5f);
+        // Utils.DrawBorderString(spriteBatch, "+", NPC.Center - screenPos, Color.White, anchorx: 0.5f, anchory: 0.5f);
         return false;
     }
 }

@@ -268,17 +268,12 @@ public sealed partial class Hush : ModNPC
     public void SetupAttackPool()
     {
         AttackPool.Clear();
-        AttackPool.Add(BossState.FlyWheels, 1);
-        AttackPool.Add(BossState.FlyWheels, 1);
-        AttackPool.Add(BossState.FlyWheels, 1);
-        AttackPool.Add(BossState.FlyWheels, 1);
-        /*
+
         AttackPool.Add(BossState.EyeRings, 0.5);
         AttackPool.Add(BossState.MouthSalvos, 0.5);
         AttackPool.Add(BossState.HomingVolleys, 0.3);
         AttackPool.Add(BossState.GapRings, 0.5, Condition_Phase2);
         AttackPool.Add(BossState.FlyWheels, 0.5, Condition_Phase2, FlyWheelCondition);
-        */
     }
 
     public bool Condition_Phase2() => Phase >= 1;
