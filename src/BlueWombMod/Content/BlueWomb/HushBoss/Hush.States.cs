@@ -23,14 +23,15 @@ public sealed partial class Hush : ModNPC
 
         Idle,
         // Phase 1
-        EyeRings,
-        MouthSalvos,
+        EyeRingsAlternating,
+        EyeRingsSpiraling,
         EyeVolleys,
-        HomingVolleys,
+        MouthSalvos,
         // Phase 2
         SinkRelocate,
         FlyWheels,
         GapRings,
+        Sink,
         // Phase 3
         GaperTunnel,
         Continuum,
@@ -57,17 +58,23 @@ public sealed partial class Hush : ModNPC
             case (int)BossState.PhaseChange:
                 DoPhaseChange();
                 break;
+
+            default:
             case (int)BossState.Idle:
                 CheckAndPickAttack();
                 break;
 
-            case (int)BossState.EyeRings:
-                Attack_EyeRings();
+            case (int)BossState.EyeRingsAlternating:
+                Attack_EyeRingsAlternating();
+                break;
+            case (int)BossState.EyeRingsSpiraling:
+                Attack_EyeRingsSpiraling();
+                break;
+            case (int)BossState.EyeVolleys:
+                Attack_EyeVolleys();
                 break;
             case (int)BossState.MouthSalvos:
                 Attack_MouthSalvos();
-                break;
-            case (int)BossState.HomingVolleys:
                 break;
             case (int)BossState.SinkRelocate:
                 Interphase_SinkRelocate();
@@ -78,6 +85,10 @@ public sealed partial class Hush : ModNPC
                 break;
             case (int)BossState.GapRings:
                 Attack_GapRings();
+                break;
+            case (int)BossState.Sink:
+                Interphase_Sink();
+                break;
 
             case (int)BossState.Hemorrhage:
                 Attack_Hemorrhage();
@@ -273,11 +284,13 @@ public sealed partial class Hush : ModNPC
     {
         AttackPool.Clear();
 
-        AttackPool.Add(BossState.EyeRings, 0.5);
+        AttackPool.Add(BossState.EyeRingsAlternating, 0.5);
+        AttackPool.Add(BossState.EyeRingsSpiraling, 0.5);
+        AttackPool.Add(BossState.EyeVolleys, 0.5);
         AttackPool.Add(BossState.MouthSalvos, 0.5);
-        AttackPool.Add(BossState.HomingVolleys, 0.3);
         AttackPool.Add(BossState.GapRings, 0.5, Condition_Phase2);
         AttackPool.Add(BossState.FlyWheels, 0.5, Condition_Phase2, FlyWheelCondition);
+        AttackPool.Add(BossState.Hemorrhage, 0.5, Condition_Phase4);
     }
 
     public bool Condition_Phase2() => Phase >= 1;

@@ -73,7 +73,6 @@ public sealed class GlowingEyeTear : ModProjectile
 
         switch (BehaviorMode)
         {
-
             default:
             case (int)Behavior.Forward:
 
@@ -100,9 +99,14 @@ public sealed class GlowingEyeTear : ModProjectile
                 break;
 
             case (int)Behavior.BurstSpeed:
-                Projectile.velocity *= 0.993f;
-                if (Projectile.velocity.Length() < 1f)
-                    Projectile.velocity *= 15f;
+
+                if (Projectile.velocity.Length() < 3f)
+                    Projectile.velocity *= 0.99f;
+                else
+                    Projectile.velocity *= 0.97f;
+
+                if (Projectile.velocity.Length() < 0.7f)
+                    Projectile.velocity *= 8f;
 
                 break;
         }

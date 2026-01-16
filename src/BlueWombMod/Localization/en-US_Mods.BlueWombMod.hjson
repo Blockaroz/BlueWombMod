@@ -87,4 +87,9 @@ NPCs: {
 	}
 
 	HushFlyLeader.DisplayName: Hush Fly Leader
+
+	BlueBoil: {
+		DisplayName: Blue Boil
+		FlavorText: Mods.BlueWombMod.NPCs.BlueBoil.FlavorText
+	}
 }

@@ -59,21 +59,12 @@ public sealed partial class Hush : ModNPC
 
     public Vector2 TargetPosition { get; set; }
 
-    public int EyeRingType { get; private set => field = Math.Abs(value % 3); }
-
-    public enum EyeRingPattern
-    {
-        Alternating,
-        Spiraling,
-        Straight,
-    }
-
-    public void Attack_EyeRings()
+    public void Attack_EyeRingsAlternating()
     {
         const int StartUpTime = 15;
-        int WaveCount = 8;
-        const int ShootTime = 24;
-        int TotalTime = StartUpTime + WaveCount * ShootTime + 180;
+        const int WaveCount = 8;
+        const int ShootTime = 29;
+        const int TotalTime = StartUpTime + WaveCount * ShootTime + 183;
 
         if (Time < StartUpTime)
         {
@@ -90,23 +81,103 @@ public sealed partial class Hush : ModNPC
         else if (Time < StartUpTime + WaveCount * ShootTime)
         {
             int localTime = (int)(Time - StartUpTime) % ShootTime;
-            int eyeSide = ((MathF.Floor((float)(Time - StartUpTime) / ShootTime) % 2) == 0 ? 1 : -1) * NPC.direction;
+            int alternate = (int)MathF.Floor((float)(Time - StartUpTime) / ShootTime) % 2;
+            int eyeSide = (alternate == 0 ? 1 : -1) * NPC.direction;
 
             Vector2 unsquish = Vector2.Lerp(Vector2.One, new Vector2(1.1f, 0.9f), Utils.GetLerpValue(StartUpTime + 10, StartUpTime, Time, true));
             float wobble = Utils.PingPongFrom01To010((float)localTime / ShootTime);
             Renderer.DrawScale = Vector2.Lerp(unsquish, new Vector2(0.9f, 1.1f), wobble);
             Renderer.DrawOffset += Main.rand.NextVector2Circular(2, 2) * MathF.Sqrt(wobble);
 
+            Color color = GlowingEyeTear.GetColorFromType(GlowTearType) * Utils.GetLerpValue(ShootTime, ShootTime / 1.5f, localTime, true);
+
+            if (localTime == 0)
+            {
+                Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Closed;
+                Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Closed;
+
+                if (eyeSide < 0)
+                    Renderer.BlinkLeft();
+                else
+                    Renderer.BlinkRight();
+            }
+
+            if (localTime > ShootTime - 10)
+                Renderer.Blink();
+
+            if (eyeSide < 0)
+                Renderer.GlowLeft(color);
+            else
+                Renderer.GlowRight(color);
+
+            if (localTime == 5 && Main.netMode != NetmodeID.MultiplayerClient)
+            {
+                GlowTearType = alternate;
+                NPC.netUpdate = true;
+
+                Vector2 position = NPC.Center + new Vector2(70 * eyeSide, -10).RotatedBy(Renderer.Face.Rotation + NPC.rotation) * Renderer.DrawScale;
+                const int count = 13;
+
+                for (int i = 0; i < count; i++)
+                {
+                    Vector2 direction = new Vector2(0, -2.5f).RotatedBy((float)i / count * MathHelper.TwoPi + Time * 0.02f * NPC.direction * alternate);
+                    Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), position, direction, ModContent.ProjectileType<GlowingEyeTear>(), 30, 0f);
+                    glowTear.ai[0] = (int)GlowingEyeTear.Behavior.VelocityLoss;
+                    glowTear.ai[1] = 0.008f * eyeSide;
+                    glowTear.localAI[0] = GlowTearType;
+                }
+            }
+        }
+
+        if (Time >= TotalTime)
+        {
+            EndAttack();
+            return;
+        }
+
+        Time++;
+    }
+
+    public void Attack_EyeRingsSpiraling()
+    {
+        const int StartUpTime = 15;
+        const int WaveCount = 5;
+        const int ShootTime = 47;
+        const int TotalTime = StartUpTime + WaveCount * ShootTime + 150;
+
+        if (Time < StartUpTime)
+        {
+            NPC.FaceTarget();
+
+            Renderer.Blink();
+
+            float progress = Utils.GetLerpValue(0, StartUpTime * 0.8f, Time, true);
+            Renderer.DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.1f, 0.9f), MathF.Sqrt(progress));
+            Renderer.DrawOffset.X += Main.rand.Next(-8, 8) * progress;
+
+            Renderer.Mouth.Scale.Y *= 1f - MathF.Cbrt(progress) * 0.7f;
+        }
+        else if (Time < StartUpTime + WaveCount * ShootTime)
+        {
+            int localTime = (int)(Time - StartUpTime) % ShootTime;
+            int eyeSide = NPC.direction;
+
+            Vector2 unsquish = Vector2.Lerp(Vector2.One, new Vector2(1.1f, 0.9f), Utils.GetLerpValue(StartUpTime + 10, StartUpTime, Time, true));
+            float wobble = Utils.PingPongFrom01To010((float)localTime / ShootTime);
+            Renderer.DrawScale = Vector2.Lerp(unsquish, new Vector2(0.9f, 1.1f), wobble);
+            Renderer.DrawOffset += Main.rand.NextVector2Circular(2, 2) * MathF.Sqrt(wobble);
+
+            Color color = GlowingEyeTear.GetColorFromType(GlowTearType) * Utils.GetLerpValue(ShootTime, ShootTime / 1.5f, localTime, true);
+
             if (localTime == 0)
             {
                 GlowTearType++;
-
                 Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Closed;
                 Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Closed;
-                Renderer.Blink();
             }
 
-            Color color = GlowingEyeTear.GetColorFromType(GlowTearType) * Utils.GetLerpValue(ShootTime, ShootTime / 1.5f, localTime, true);
+            if (localTime > ShootTime - 10)
+                Renderer.Blink();
 
             if (eyeSide < 0)
             {
@@ -119,23 +190,101 @@ public sealed partial class Hush : ModNPC
                 Renderer.GlowRight(color);
             }
 
+            const int SprayAmount = 4;
+            const int TimePerSpray = 4;
 
-            if (localTime == 5)
+            if (localTime >= 5 && localTime % TimePerSpray == 0 && localTime < 5 + SprayAmount * TimePerSpray && Main.netMode != NetmodeID.MultiplayerClient)
             {
+                NPC.netUpdate = true;
+
                 Vector2 position = NPC.Center + new Vector2(70 * eyeSide, -10).RotatedBy(Renderer.Face.Rotation + NPC.rotation) * Renderer.DrawScale;
 
-                if (Main.netMode != NetmodeID.MultiplayerClient)
+                float curl = (localTime - 5f) / (SprayAmount * TimePerSpray) % 1f;
+                for (int i = 0; i < 4; i++)
                 {
-                    float curl = Utils.GetLerpValue(0, WaveCount * ShootTime, Time - StartUpTime, true);
-                    int count = (int)(12 + 4 * curl);
-                    for (int i = 0; i < count; i++)
-                    {
-                        Vector2 direction = new Vector2(0, -2.4f - curl * 0.1f).RotatedBy((float)i / count * MathHelper.TwoPi + Time * 0.01f);
-                        Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), position, direction, ModContent.ProjectileType<GlowingEyeTear>(), 30, 0f);
-                        glowTear.ai[0] = GlowTearType;
-                        glowTear.localAI[0] = GlowTearType;
-                        glowTear.ai[1] = curl * 0.003f * eyeSide;
-                    }
+                    Vector2 direction = new Vector2(0, -4f).RotatedBy((float)i / 4f * MathHelper.TwoPi + curl - Time * 0.01f * eyeSide);
+                    Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), position, direction, ModContent.ProjectileType<GlowingEyeTear>(), 30, 0f);
+                    glowTear.ai[0] = GlowTearType == 2 ? (int)GlowingEyeTear.Behavior.Forward : (GlowTearType == 1 ? (int)GlowingEyeTear.Behavior.VelocityLoss : (int)GlowingEyeTear.Behavior.VelocityGain);
+                    glowTear.ai[1] = -0.001f * eyeSide;
+                    glowTear.localAI[0] = GlowTearType;
+                }
+            }
+        }
+
+        if (Time >= TotalTime)
+        {
+            EndAttack();
+            return;
+        }
+
+        Time++;
+    }
+
+    public void Attack_EyeVolleys()
+    {
+        const int StartUpTime = 31;
+        const int ShootTime = 67;
+        const int TotalTime = StartUpTime + ShootTime + 69;
+
+        if (Time < StartUpTime)
+        {
+            NPC.FaceTarget();
+
+            Renderer.Blink();
+
+            float progress = Utils.GetLerpValue(0, StartUpTime * 0.5f, Time, true);
+            Renderer.DrawScale = Vector2.Lerp(Vector2.One, new Vector2(0.9f, 1.1f), MathF.Sqrt(progress));
+            Renderer.DrawOffset.X += Main.rand.Next(-8, 8) * progress;
+
+            Renderer.Mouth.Offset.Y += progress * 10f;
+            Renderer.Mouth.Scale.X *= 1f - MathF.Cbrt(progress) * 0.3f;
+            Renderer.Mouth.Scale.Y *= 1f + MathF.Cbrt(progress) * 0.4f;
+        }
+        else if (Time < StartUpTime + ShootTime)
+        {
+            float blastProgress = Utils.GetLerpValue(0, ShootTime / 3f, Time - StartUpTime, true) * Utils.GetLerpValue(ShootTime, ShootTime / 2f, Time - StartUpTime, true);
+
+            Renderer.DrawScale = Vector2.Lerp(Vector2.One, new Vector2(1.1f, 0.9f), MathF.Sqrt(blastProgress));
+            Renderer.DrawOffset.X += Main.rand.NextFloat(-4f, 4f) * blastProgress;
+            int eyeSide = -NPC.direction;
+
+            if (Time == StartUpTime)
+            {
+                GlowTearType = 2;
+
+                Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Closed;
+                Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Closed;
+            }
+
+            if (Time > StartUpTime + ShootTime - 10)
+                Renderer.Blink();
+
+            Color color = GlowingEyeTear.GetColorFromType(GlowTearType);
+
+            if (eyeSide < 0)
+            {
+                Renderer.BlinkRight();
+                Renderer.GlowLeft(color);
+            }
+            else
+            {
+                Renderer.BlinkLeft();
+                Renderer.GlowRight(color);
+            }
+
+            if (Time % 8 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
+            {
+                NPC.netUpdate = true;
+
+                Vector2 eyePosition = NPC.Center + new Vector2(70 * eyeSide, -10).RotatedBy(Renderer.Face.Rotation + NPC.rotation) * Renderer.DrawScale;
+
+                for (int i = 0; i < 3; i++)
+                {
+                    Vector2 direction = new Vector2(0, 6f).RotatedBy(Time * 0.03f * eyeSide + (float)i / 3f * MathHelper.TwoPi);
+                    Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), eyePosition, direction, ModContent.ProjectileType<GlowingEyeTear>(), 30, 0f);
+                    glowTear.ai[0] = (int)GlowingEyeTear.Behavior.BurstSpeed;
+                    glowTear.ai[1] = -0.002f * eyeSide;
+                    glowTear.localAI[0] = GlowTearType;
                 }
             }
         }
@@ -356,7 +505,7 @@ public sealed partial class Hush : ModNPC
         const int SinkTime = 300;
         const int ConfirmationTime = 10;
 
-        NPC.takenDamageMultiplier = 0.2f;
+        NPC.takenDamageMultiplier = 0.1f;
 
         if (Time < SinkTime)
         {
@@ -621,6 +770,47 @@ public sealed partial class Hush : ModNPC
         }
 
         Time++;
+    }
+
+    public void Interphase_Sink()
+    {
+        const int SinkTime = 300;
+
+        NPC.takenDamageMultiplier = 0.1f;
+
+        if (Time < SinkTime)
+        {
+            NPC.dontTakeDamage = true;
+            NPC.velocity *= 0.5f;
+            SetHome(HushSystem.WombPosition.ToWorldCoordinates() - new Vector2(0, 50));
+
+            Renderer.SinkDown();
+
+            Time++;
+            MiscTime = 0;
+
+            if (Time == SinkTime - 1)
+            {
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
+
+                BreakRadius();
+            }
+        }
+
+        if (Time >= SinkTime)
+        {
+            NPC.Center = HomePosition;
+            NPC.velocity = Vector2.Zero;
+
+            Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
+
+            EndAttack();
+
+            if (Phase == 2)
+                State = (int)BossState.GaperTunnel;
+
+            return;
+        }
     }
 
     public void Attack_GaperTunnel()

@@ -63,7 +63,8 @@ public sealed class HushRenderer(NPC nPC)
     private Transformation _eyeRightTransform;
     public ref Transformation EyeRight => ref _eyeRightTransform;
 
-    public Color EyeGlowColor;
+    public Color EyeGlowColorLeft;
+    public Color EyeGlowColorRight;
 
     public MouthAnimationState MouthState { get; set; }
     private Transformation _mouthTransform;
@@ -90,7 +91,8 @@ public sealed class HushRenderer(NPC nPC)
         MouthState = MouthAnimationState.Normal;
         Mouth = new Transformation();
 
-        EyeGlowColor = Color.Transparent;
+        EyeGlowColorLeft = Color.Transparent;
+        EyeGlowColorRight = Color.Transparent;
     }
 
     public void Update()
@@ -151,7 +153,7 @@ public sealed class HushRenderer(NPC nPC)
     public float BlinkLeftProgress => BlinkingLeft ? Utils.GetLerpValue(BLINK_TIME, 0, blinkLeftTime, true) : 0f;
 
     private int blinkRightTime;
-    public bool BlinkingRight => blinkLeftTime > -1;
+    public bool BlinkingRight => blinkRightTime > -1;
     public float BlinkRightProgress => BlinkingRight ? Utils.GetLerpValue(BLINK_TIME, 0, blinkRightTime, true) : 0f;
 
     public void Blink()
@@ -179,7 +181,7 @@ public sealed class HushRenderer(NPC nPC)
     public void GlowLeft(Color? color = null)
     {
         if (color is Color glowColor)
-            EyeGlowColor = glowColor;
+            EyeGlowColorLeft = glowColor;
 
         if (EyeStateLeft == EyeAnimationState.Open)
             EyeStateLeft = EyeAnimationState.Glowing;
@@ -188,7 +190,7 @@ public sealed class HushRenderer(NPC nPC)
     public void GlowRight(Color? color = null)
     {
         if (color is Color glowColor)
-            EyeGlowColor = glowColor;
+            EyeGlowColorRight = glowColor;
 
         if (EyeStateRight == EyeAnimationState.Open)
             EyeStateRight = EyeAnimationState.Glowing;
@@ -352,14 +354,14 @@ public sealed class HushRenderer(NPC nPC)
             if (EyeStateLeft == EyeAnimationState.Glowing)
             {
                 Rectangle eyeLeftGlowFrame = eyeTexture.Frame(2, 4, 0, 3);
-                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftGlowFrame, EyeGlowColor * NPC.Opacity, faceRotation + eyeLeftRot, eyeLeftGlowFrame.Size() / 2, faceScale * EyeLeft.Scale, 0, 0);
-                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftGlowFrame, EyeGlowColor with { A = 0 } * 2f * NPC.Opacity, faceRotation + eyeRightRot, eyeLeftGlowFrame.Size() / 2, faceScale * EyeLeft.Scale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftGlowFrame, EyeGlowColorLeft * NPC.Opacity, faceRotation + eyeLeftRot, eyeLeftGlowFrame.Size() / 2, faceScale * EyeLeft.Scale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftGlowFrame, EyeGlowColorLeft with { A = 0 } * 2f * NPC.Opacity, faceRotation + eyeRightRot, eyeLeftGlowFrame.Size() / 2, faceScale * EyeLeft.Scale, 0, 0);
             }
             if (EyeStateRight == EyeAnimationState.Glowing)
             {
                 Rectangle eyeRightGlowFrame = eyeTexture.Frame(2, 4, 1, 3);
-                spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightGlowFrame, EyeGlowColor * NPC.Opacity, faceRotation + EyeRight.Rotation, eyeRightGlowFrame.Size() / 2, faceScale * EyeRight.Scale, 0, 0);
-                spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightGlowFrame, EyeGlowColor with { A = 0 } * 2f * NPC.Opacity, faceRotation + EyeRight.Rotation, eyeRightGlowFrame.Size() / 2, faceScale * EyeRight.Scale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightGlowFrame, EyeGlowColorRight * NPC.Opacity, faceRotation + EyeRight.Rotation, eyeRightGlowFrame.Size() / 2, faceScale * EyeRight.Scale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightGlowFrame, EyeGlowColorRight with { A = 0 } * 2f * NPC.Opacity, faceRotation + EyeRight.Rotation, eyeRightGlowFrame.Size() / 2, faceScale * EyeRight.Scale, 0, 0);
             }
         }
 
