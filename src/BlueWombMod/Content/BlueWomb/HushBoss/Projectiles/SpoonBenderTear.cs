@@ -33,9 +33,14 @@ public sealed class SpoonBenderTear : ModProjectile
 
     public ref float MiscTime => ref Projectile.localAI[0];
 
+    public override void OnSpawn(IEntitySource source)
+    {
+        HostIndex = -1;
+    }
+
     public override void AI()
     {
-        if (HostIndex > 0 && HostIndex <= Main.npc.Length)
+        if (HostIndex >= 0 && HostIndex < Main.npc.Length)
         {
             NPC npc = Main.npc[(int)HostIndex - 1];
             if (npc.active && npc.life > 5 && !npc.friendly)

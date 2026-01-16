@@ -63,8 +63,6 @@ public sealed class GlowingEyeTear : ModProjectile
             Projectile.velocity *= 0.99f;
         }
 
-        Curvature *= 0.999f;
-
         switch (Mode)
         {
             default:
@@ -73,16 +71,22 @@ public sealed class GlowingEyeTear : ModProjectile
                 if (Projectile.velocity.Length() > 2.5f)
                     Projectile.velocity *= 0.995f;
 
+                Curvature *= 0.998f;
+
                 break;
 
             case 1: // Gain velocity
 
                 if (Projectile.velocity.Length() < 18f)
                     Projectile.velocity *= 1.0012f;
+                else
+                    Curvature *= 0.998f;
 
                 break;
 
             case 2: // Retain velocity
+
+                Curvature *= 0.998f;
 
                 break;
 

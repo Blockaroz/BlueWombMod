@@ -330,6 +330,8 @@ public sealed partial class Hush : ModNPC
         const int SinkTime = 100;
         const int ConfirmationTime = 10;
 
+        NPC.takenDamageMultiplier = 0.2f;
+
         if (Time < SinkTime)
         {
             NPC.dontTakeDamage = true;
@@ -343,7 +345,9 @@ public sealed partial class Hush : ModNPC
 
             if (Time == SinkTime - 1)
             {
-                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "HushJump"));
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
+
+                BreakRadius();
             }
         }
         else
@@ -364,6 +368,9 @@ public sealed partial class Hush : ModNPC
             else
             {
                 NPC.velocity = NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 1.67f;
+
+                if (MiscTime % 10 == 0)
+                    Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 3f, 15, 2, "Hush"));
             }
 
             float wobble = Math.Abs(MathF.Sin((MiscTime - SinkTime) * 0.16f)) * NPC.velocity.Length() * 0.5f;
@@ -373,20 +380,25 @@ public sealed partial class Hush : ModNPC
 
         if (Time >= SinkTime + ConfirmationTime)
         {
+            NPC.Center = HomePosition;
             NPC.velocity = Vector2.Zero;
+
+            Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
 
             EndAttack();
             return;
         }
     }
 
-    public bool FlyWheelCondition() => Phase > 0 && Phase < 4;
+    public bool FlyWheelCondition() => Phase <= 3;
+
+    private int FlyLeaderIndex { get; set; }
 
     public void Attack_FlyWheels()
     {
         const int AhTime = 58;
-        const int ChooTime = 4;
-        const int FlyCount = 10;
+        const int ChooTime = 3;
+        const int FlyCount = 13;
         const int TotalTime = AhTime + ChooTime * FlyCount;
 
         if (Time < AhTime)
@@ -446,8 +458,38 @@ public sealed partial class Hush : ModNPC
 
                 if (Main.netMode != NetmodeID.MultiplayerClient)
                 {
+                    int orbitCount = 0;
+                    foreach (NPC npc in Main.ActiveNPCs)
+                    {
+                        if (npc.ModNPC is HushFly hushFly)
+                        {
+                            if (hushFly.LeaderIndex == NPC.whoAmI)
+                                orbitCount++;
+                        }
+                    }
+
+                    int flyNumber = (int)MathF.Floor((Time - AhTime) / ChooTime);
+
+                    if (flyNumber == 0)
+                    {
+                        NPC flyLeader = NPC.NewNPCDirect(NPC.GetSource_FromThis(), nosePosition, ModContent.NPCType<HushFlyLeader>());
+                        flyLeader.velocity = new Vector2(0, Main.rand.NextFloat(3f, 7f)).RotatedByRandom(1f);
+
+                        FlyLeaderIndex = flyLeader.whoAmI;
+                    }
+
                     NPC fly = NPC.NewNPCDirect(NPC.GetSource_FromThis(), nosePosition, ModContent.NPCType<HushFly>());
-                    fly.velocity = new Vector2(0, Main.rand.NextFloat(2f, 5f)).RotatedByRandom(1f);
+                    fly.velocity = new Vector2(0, Main.rand.NextFloat(3f, 7f)).RotatedByRandom(1f);
+                    fly.ai[0] = FlyLeaderIndex;
+
+                    if (flyNumber % 2 == 1 && orbitCount < 20)
+                    {
+                        NPC orbitFly = NPC.NewNPCDirect(NPC.GetSource_FromThis(), nosePosition, ModContent.NPCType<HushFly>());
+                        orbitFly.velocity = new Vector2(0, Main.rand.NextFloat(5f, 15f)).RotatedByRandom(1f);
+                        orbitFly.ai[0] = NPC.whoAmI;
+                        orbitFly.ai[1] = (int)MathF.Floor(flyNumber / 2f);
+                        orbitFly.ai[2] = Time - AhTime - 30;
+                    }
                 }
             }
         }
@@ -530,8 +572,8 @@ public sealed partial class Hush : ModNPC
                         Vector2 direction = new Vector2(1.5f + curl * 0.2f, 0).RotatedBy((float)(i + 1) / (count + 2) * MathHelper.TwoPi);
                         direction = direction.RotatedBy(NPC.AngleTo(TargetPosition) + randomOffset);
                         Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), position, direction, ModContent.ProjectileType<GlowingEyeTear>(), 30, 0f);
-                        glowTear.ai[0] = GlowTearType;
-                        glowTear.ai[1] = curl * 0.01f * eyeSide;
+                        glowTear.ai[1] = curl * 0.015f * eyeSide;
+                        glowTear.localAI[0] = GlowTearType;
                     }
                 }
             }

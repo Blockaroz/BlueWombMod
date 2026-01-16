@@ -34,7 +34,7 @@ public sealed partial class Hush : ModNPC
 
         NPC.boss = true;
         NPC.lifeMax = 10000;
-        NPC.defense = 30;
+        NPC.defense = 50;
         NPC.knockBackResist = 0f;
         NPC.npcSlots = 10f;
 
@@ -73,10 +73,12 @@ public sealed partial class Hush : ModNPC
         SetHome(NPC.Center);
 
         NPC.dontTakeDamage = true;
+        NPC.netUpdate = true;
     }
 
     public override void AI()
     {
+        SetStats();
         CreativeShockPlayers();
 
         Renderer.Reset();
@@ -126,6 +128,12 @@ public sealed partial class Hush : ModNPC
         return true;
     }
 
+    public void SetStats()
+    {
+        NPC.defense = 50;
+        NPC.takenDamageMultiplier = 0.6f;
+    }
+
     public void BuildLootBox()
     {
         const int radius = 6;
@@ -145,7 +153,7 @@ public sealed partial class Hush : ModNPC
 
     public void BreakRadius()
     {
-        const int radius = 200 / 16;
+        const int radius = 12;
         for (int j = -radius; j < radius; j++)
         {
             for (int i = -radius; i < radius; i++)
@@ -244,7 +252,10 @@ public sealed partial class Hush : ModNPC
 
     public override void ModifyHoverBoundingBox(ref Rectangle boundingBox)
     {
-        boundingBox = NPC.Hitbox;
+        if (NPC.Distance(Main.MouseWorld) < NPC.width / 2)
+            boundingBox = new Rectangle(NPC.Hitbox.X - 25, NPC.Hitbox.Y - 25, NPC.Hitbox.Width + 50, NPC.Hitbox.Height + 50);
+        else
+            boundingBox = Rectangle.Empty;
     }
 
     public HushRenderer Renderer { get; private set; }

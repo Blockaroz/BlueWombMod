@@ -174,6 +174,8 @@ public sealed class BlueGaper : ModNPC
             NPC.direction = 0;
             HeadDirection = 0;
         }
+        else if (Mode == 0)
+            drawColor = Color.Lerp(Color.Black, drawColor, Utils.GetLerpValue(0, 30, Time, true));
 
         Texture2D texture = TextureAssets.Npc[Type].Value;
 

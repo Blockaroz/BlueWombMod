@@ -182,8 +182,11 @@ public sealed partial class Hush : ModNPC
             Renderer.DrawScale = new Vector2(1f + MathF.Sqrt(1f - bounceInTime) * 0.2f, 1f - MathF.Sqrt(1f - bounceInTime) * 0.2f);
             Renderer.DrawOffset.X = MathF.Sin(Time * 1.75f) * 6f * bounceInTime;
 
-            ScreenDarkness.frontColor = Color.Black;
-            ScreenDarkness.screenObstruction = Utils.GetLerpValue(SinkTime + FadeTime / 3f, TotalTime, Time, true);
+            if (!Main.dedServ)
+            {
+                ScreenDarkness.frontColor = Color.Black;
+                ScreenDarkness.screenObstruction = Utils.GetLerpValue(SinkTime + FadeTime / 3f, TotalTime, Time, true) * Utils.GetLerpValue(5000, 4000, NPC.Distance(Main.LocalPlayer.Center), true);
+            }
 
             if (Time > SinkTime + FadeTime / 2f)
                 Renderer.Blink();
@@ -265,11 +268,23 @@ public sealed partial class Hush : ModNPC
     public void SetupAttackPool()
     {
         AttackPool.Clear();
+        AttackPool.Add(BossState.FlyWheels, 1);
+        AttackPool.Add(BossState.FlyWheels, 1);
+        AttackPool.Add(BossState.FlyWheels, 1);
+        AttackPool.Add(BossState.FlyWheels, 1);
+        /*
         AttackPool.Add(BossState.EyeRings, 0.5);
         AttackPool.Add(BossState.MouthSalvos, 0.5);
-        AttackPool.Add(BossState.HomingVolleys, 0.2);
-        AttackPool.Add(BossState.FlyWheels, 0.5, FlyWheelCondition);
+        AttackPool.Add(BossState.HomingVolleys, 0.3);
+        AttackPool.Add(BossState.GapRings, 0.5, Condition_Phase2);
+        AttackPool.Add(BossState.FlyWheels, 0.5, Condition_Phase2, FlyWheelCondition);
+        */
     }
+
+    public bool Condition_Phase2() => Phase >= 1;
+    public bool Condition_Phase3() => Phase >= 2;
+    public bool Condition_Phase4() => Phase >= 3;
+    public bool Condition_Phase5() => Phase >= 4;
 
     public void CheckAndPickAttack()
     {
@@ -283,7 +298,7 @@ public sealed partial class Hush : ModNPC
         }
 
         if (CheckForTarget())
-            State = (int)AttackPool.PickFromTop(2, 0.2);
+            State = (int)AttackPool.PickFromTop(-1, 0.2);
         else
             State = (int)BossState.Despawning;
 
@@ -295,6 +310,11 @@ public sealed partial class Hush : ModNPC
             return false;
 
         float percent = NPC.GetLifePercent();
+        if (Phase == 0)
+            return percent < 0.8f;
+        else
+            return false;
+
         switch (Phase)
         {
             default:
