@@ -1,18 +1,35 @@
 sampler uImage0 : register(s0);
 
-static const int lightSize = 8;
+float4 uColor;
 
-float3 uLights[lightSize * lightSize];
+matrix uTransformMatrix;
 
-float4 main(float4 sampleColor : COLOR0, float2 uv : TEXCOORD0) : COLOR0
+struct VertexShaderInput
 {
-    int i = floor(uv.x * (lightSize - 1));
-    int j = floor(uv.y * (lightSize - 1)) * lightSize;
-    float3 row = lerp(uLights[i + j], uLights[i + 1 + j], uv.x * (lightSize - 1) - i);
-    float3 rowDown = lerp(uLights[i + j + lightSize], uLights[i + j + 1 + lightSize], uv.x * (lightSize - 1) - i);
-    float3 color = lerp(row, rowDown, uv.y * (lightSize - 1) - j / lightSize);
+    float2 Coord : TEXCOORD0;
+    float4 Position : POSITION0;
+    float4 Color : COLOR0;
+};
 
-    return float4(color, 1) * tex2D(uImage0, uv) * sampleColor;
+struct VertexShaderOutput
+{
+    float2 Coord : TEXCOORD0;
+    float4 Position : POSITION0;
+    float4 Color : COLOR0;
+};
+
+VertexShaderOutput vertex(in VertexShaderInput input)
+{
+    VertexShaderOutput output = (VertexShaderOutput) 0;
+    output.Color = input.Color;
+    output.Coord = input.Coord;
+    output.Position = mul(input.Position, uTransformMatrix);
+    return output;
+}
+
+float4 main(in VertexShaderOutput input) : COLOR0
+{
+    return input.Color * uColor * tex2D(uImage0, input.Coord);
 }
 
 #ifdef FX
@@ -20,6 +37,7 @@ technique Technique1
 {
     pass CurseFieldPass
     {
+        VertexShader = compile vs_3_0 vertex();
         PixelShader = compile ps_3_0 main();
     }
 }

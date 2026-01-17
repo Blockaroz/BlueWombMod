@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Diagnostics;
+using System.IO;
 using Terraria;
 using Terraria.Chat;
 using Terraria.DataStructures;
@@ -198,6 +199,24 @@ public sealed partial class Hush : ModNPC
     {
         if (HitTime == 0)
             HitTime = 10;
+    }
+
+    public override void SendExtraAI(BinaryWriter writer)
+    {
+        writer.Write(NPC.homeTileX);
+        writer.Write(NPC.homeTileY);
+
+        writer.Write(FlyLeaderIndex);
+        writer.Write(ContinuumWaves);
+    }
+
+    public override void ReceiveExtraAI(BinaryReader reader)
+    {
+        NPC.homeTileX = reader.ReadInt32();
+        NPC.homeTileY = reader.ReadInt32();
+
+        FlyLeaderIndex = reader.ReadInt32();
+        ContinuumWaves = reader.ReadByte();
     }
 
     public override void BossLoot(ref int potionType)

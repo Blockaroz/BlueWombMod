@@ -19,22 +19,21 @@ public sealed partial class Hush : ModNPC
         Spawning,
         Despawning,
         Death,
-        PhaseChange,
-
         Idle,
+
         // Phase 1
         EyeRingsAlternating,
         EyeRingsSpiraling,
         EyeVolleys,
         MouthSalvos,
         // Phase 2
-        SinkRelocate,
+        MoveToCenter,
         FlyWheels,
         GapRings,
         Sink,
         // Phase 3
         GaperTunnel,
-        RehomeWithBoils,
+        RelocateWithBoils,
         Continuum,
         // Phase 4
         Chase,
@@ -56,13 +55,16 @@ public sealed partial class Hush : ModNPC
             case (int)BossState.Death:
                 DoDeath();
                 break;
-            case (int)BossState.PhaseChange:
-                DoPhaseChange();
-                break;
 
             default:
             case (int)BossState.Idle:
                 CheckAndPickAttack();
+                break;
+            case (int)BossState.Sink:
+                Interphase_Sink();
+                break;
+            case (int)BossState.MoveToCenter:
+                Interphase_MoveToCenter();
                 break;
 
             case (int)BossState.EyeRingsAlternating:
@@ -77,9 +79,6 @@ public sealed partial class Hush : ModNPC
             case (int)BossState.MouthSalvos:
                 Attack_MouthSalvos();
                 break;
-            case (int)BossState.SinkRelocate:
-                Interphase_SinkRelocate();
-                break;
 
             case (int)BossState.FlyWheels:
                 Attack_FlyWheels();
@@ -87,15 +86,12 @@ public sealed partial class Hush : ModNPC
             case (int)BossState.GapRings:
                 Attack_GapRings();
                 break;
-            case (int)BossState.Sink:
-                Interphase_Sink();
-                break;
 
             case (int)BossState.GaperTunnel:
                 Attack_GaperTunnel();
                 break;
-            case (int)BossState.RehomeWithBoils:
-                Attack_RehomeWithBoils();
+            case (int)BossState.RelocateWithBoils:
+                Attack_RelocateWithBoils();
                 break;
             case (int)BossState.Continuum:
                 Attack_Continuum();
@@ -304,9 +300,9 @@ public sealed partial class Hush : ModNPC
         AttackPool.Add(BossState.FlyWheels, 2.0, Condition_Phase2, FlyWheelCondition);
 
         AttackPool.Add(BossState.GaperTunnel, 5.0, Condition_Phase3);
-        AttackPool.Add(BossState.Continuum, 10.0, Condition_Phase3);
+        AttackPool.Add(BossState.Continuum, 7.0, Condition_Phase3);
 
-        AttackPool.Add(BossState.Hemorrhage, 0.5, Condition_Phase4);
+        AttackPool.Add(BossState.Hemorrhage, 3.5, Condition_Phase4);
     }
 
     public bool Condition_Phase2() => Phase >= 1;
@@ -321,12 +317,13 @@ public sealed partial class Hush : ModNPC
 
         if (CheckPhaseChangeNeeded())
         {
-            State = (int)BossState.PhaseChange;
+            State = (int)BossState.Sink;
+            Phase++;
             return;
         }
 
         if (CheckForTarget())
-            State = (int)AttackPool.PickFromTop(4, 0.2);
+            State = (int)BossState.Continuum;//AttackPool.PickFromTop(4, 0.2);
         else
             State = (int)BossState.Despawning;
 
@@ -334,7 +331,8 @@ public sealed partial class Hush : ModNPC
 
     private bool CheckPhaseChangeNeeded()
     {
-        if (State == (int)BossState.PhaseChange)
+        if (State == (int)BossState.Death || 
+            State == (int)BossState.Despawning)
             return false;
 
         float percent = NPC.GetLifePercent();
@@ -342,33 +340,15 @@ public sealed partial class Hush : ModNPC
         switch (Phase)
         {
             default:
+                return false;
             case 0:
                 return percent < 0.8f;
             case 1:
                 return percent < 0.6f;
             case 2:
-                return false;
+                return percent < 0.4f;
             case 3:
-                return false;
-        }
-    }
-
-    public void DoPhaseChange()
-    {
-        switch (Phase)
-        {
-            default:
-                // How did you get here?
-                State = (int)BossState.Idle;
-                break;
-            case 0:
-                Phase++;
-                State = (int)BossState.SinkRelocate;
-                break;
-            case 1:
-                Phase++;
-                State = (int)BossState.Sink;
-                break;
+                return percent < 0.2f;
         }
     }
 

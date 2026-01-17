@@ -21,7 +21,7 @@ public sealed class BloodTear : ModProjectile
 
         Projectile.penetrate = 1;
         Projectile.tileCollide = true;
-        Projectile.timeLeft = 300;
+        Projectile.timeLeft = 310;
     }
 
     public ref float Time => ref Projectile.ai[0];
@@ -71,9 +71,9 @@ public sealed class BloodTear : ModProjectile
                 }
 
                 if (Time > 30)
-                    Projectile.velocity *= 0.93f;
+                    Projectile.velocity *= 0.96f;
 
-                if (Time > 90)
+                if (Time > 120)
                     Projectile.Kill();
 
                 break;

@@ -213,16 +213,16 @@ public sealed class HushRenderer(NPC nPC)
                 sinkTime++;
 
             float bounceIntoFloor = MathF.Sin(Utils.GetLerpValue(0, InGroundTime / 2, sinkTime, true) * 2.5f + (MathHelper.Pi - 2.5f));
-            DrawScale = new Vector2(1f + 0.2f * bounceIntoFloor, 1f - bounceIntoFloor * 0.1f);
-            DrawOffset.Y = (DrawScale.Y - 1f) * -80f;
+            DrawScale *= new Vector2(1f + 0.2f * bounceIntoFloor, 1f - bounceIntoFloor * 0.1f);
+            DrawOffset.Y += (DrawScale.Y - 1f) * -80f;
         }
         else if (sinkTime > 0)
         {
             sinkTime--;
 
             float bounceOutOfFloor = MathF.Sqrt(Math.Abs(MathF.Sin(Utils.GetLerpValue(InGroundTime, 0, sinkTime, true) * 3f)));
-            DrawScale = new Vector2(1f - 0.25f * bounceOutOfFloor, 1f + bounceOutOfFloor * 0.2f);
-            DrawOffset.Y = bounceOutOfFloor * -24f;
+            DrawScale *= new Vector2(1f - 0.25f * bounceOutOfFloor, 1f + bounceOutOfFloor * 0.2f);
+            DrawOffset.Y += bounceOutOfFloor * -24f;
             Face.Offset.Y += MathF.Sqrt(Utils.GetLerpValue(0, InGroundTime, sinkTime, true)) * -40f;
         }
     }
@@ -238,39 +238,12 @@ public sealed class HushRenderer(NPC nPC)
     public static LazyAsset<Texture2D> EyesTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/BlueWomb/HushBoss/HushEyes");
     public static LazyAsset<Texture2D> MouthTexture { get; } = new LazyAsset<Texture2D>($"{nameof(BlueWombMod)}/Assets/Textures/BlueWomb/HushBoss/HushMouth");
 
-    public Vector3 GetColor(Vector2 position)
-    {
-        if (NPC.IsABestiaryIconDummy)
-            return Vector3.One;
-
-        // Dust.QuickDust(position, Color.Red);
-        return Lighting.GetColor(position.ToTileCoordinates()).ToVector3();
-    }
-
-    private void ApplyLight(Vector2 center, float width, float height, float rotation, Vector2 scale)
-    {
-        Effect lightEffect = Assets.Effects.LightingShader.Value;
-
-        const int lightSize = 8;
-        Vector3[] lights = new Vector3[lightSize * lightSize];
-        for (int j = 0; j < lightSize; j++)
-        {
-            for (int i = 0; i < lightSize; i++)
-            {
-                Vector2 position = center + (new Vector2(width * (i + 0.5f - lightSize / 2f) / lightSize, height * (j + 0.5f - lightSize / 2f) / lightSize) * scale).RotatedBy(rotation);
-                lights[i + j * lightSize] = GetColor(position);
-            }
-        }
-
-        lightEffect.Parameters["uLights"]?.SetValue(lights);
-
-        lightEffect.CurrentTechnique.Passes[0].Apply();
-    }
-
     public void Draw(SpriteBatch spriteBatch, Vector2 screenPos)
     {
-        var rasterizerState = spriteBatch.GraphicsDevice.RasterizerState;
-        var scissorRect = spriteBatch.GraphicsDevice.ScissorRectangle;
+        var device = spriteBatch.GraphicsDevice;
+
+        var rasterizerState = device.RasterizerState;
+        var scissorRect = device.ScissorRectangle;
         spriteBatch.End(out var ss);
 
         var center = Hush.DrawTarget.Size() / 4f;
@@ -296,7 +269,13 @@ public sealed class HushRenderer(NPC nPC)
 
         using (new RenderTargetScope(Hush.DrawTarget, clear: true))
         {
-            spriteBatch.Begin(ss with { SortMode = SpriteSortMode.Immediate, SamplerState = SamplerState.AnisotropicClamp, Rasterizer = RasterizerState.CullNone, TransformMatrix = Matrix.CreateScale(2f) });
+            spriteBatch.Begin(ss with
+            {
+                SortMode = SpriteSortMode.Immediate,
+                SamplerState = SamplerState.AnisotropicClamp,
+                Rasterizer = RasterizerState.CullNone,
+                TransformMatrix = Matrix.CreateScale(2f)
+            });
 
             if (!HideMound)
             {
@@ -323,8 +302,8 @@ public sealed class HushRenderer(NPC nPC)
             spriteBatch.End();
         }
 
-        spriteBatch.GraphicsDevice.RasterizerState = rasterizerState;
-        spriteBatch.GraphicsDevice.ScissorRectangle = scissorRect;
+        device.RasterizerState = rasterizerState;
+        device.ScissorRectangle = scissorRect;
 
         spriteBatch.Begin(ss with { SortMode = SpriteSortMode.Immediate });
 
@@ -337,9 +316,7 @@ public sealed class HushRenderer(NPC nPC)
 
         var scale = NPC.scale * DrawScale;
 
-        ApplyLight(NPC.Center + DrawOffset, Hush.DrawTarget.Width, Hush.DrawTarget.Height, NPC.rotation, scale * 0.562f);
-
-        spriteBatch.Draw(Hush.DrawTarget, NPC.Center + DrawOffset - screenPos, Hush.DrawTarget.Frame(), baseColor * NPC.Opacity, NPC.rotation, Hush.DrawTarget.Size() / 2, scale * 0.5f, 0, 0);
+        DrawHushMesh(device, NPC.Center + DrawOffset, screenPos, baseColor, Hush.DrawTarget.Width, Hush.DrawTarget.Height, NPC.rotation, scale * 0.5f);
 
         if (!HideFace && MoundState == AnimationState.Normal)
         {
@@ -367,5 +344,61 @@ public sealed class HushRenderer(NPC nPC)
 
         spriteBatch.End();
         spriteBatch.Begin(ss);
+    }
+
+    public Color GetColor(Vector2 position)
+    {
+        if (NPC.IsABestiaryIconDummy)
+            return Color.White;
+
+        // Dust.QuickDust(position, Color.Red);
+        return new Color(Lighting.GetSubLight(position) * Lighting.GlobalBrightness);
+    }
+
+    private void DrawHushMesh(GraphicsDevice device, Vector2 center, Vector2 screenPos, Color drawColor, float width, float height, float rotation, Vector2 scale)
+    {
+        const int lightDef = 16;
+
+        VertexPositionColorTexture[] vertices = new VertexPositionColorTexture[lightDef * lightDef];
+        short[] indices = new short[(vertices.Length - lightDef) * 6];
+
+        for (int j = 0; j < lightDef; j++)
+        {
+            for (int i = 0; i < lightDef; i++)
+            {
+                var index = i + j * lightDef;
+                Vector2 lightVertex = center + (new Vector2(width * (i + 0.5f - lightDef / 2f) / (lightDef - 1f), height * (j + 0.5f - lightDef / 2f) / (lightDef - 1f)) * scale).RotatedBy(rotation);
+
+                vertices[index].Position = new Vector3(lightVertex - screenPos, 0);
+                vertices[index].TextureCoordinate = new Vector2(i / (lightDef - 1f), j / (lightDef - 1f));
+                vertices[index].Color = GetColor(lightVertex);
+            }
+        }
+
+        short iI = 0;
+        for (short i = 0; i < vertices.Length - lightDef - 1; i++)
+        {
+            if (i % lightDef == lightDef - 1)
+                continue;
+
+            var nextIndex = i;
+            indices[iI++] = (short)nextIndex;
+            indices[iI++] = (short)(nextIndex + 1);
+            indices[iI++] = (short)(nextIndex + lightDef);
+            indices[iI++] = (short)(nextIndex + 1);
+            indices[iI++] = (short)(nextIndex + lightDef + 1);
+            indices[iI++] = (short)(nextIndex + lightDef);
+        }
+
+        device.Textures[0] = Hush.DrawTarget;
+        device.VertexTextures[0] = Hush.DrawTarget;
+        device.SamplerStates[0] = SamplerState.PointClamp;
+
+        Effect lightEffect = Assets.Effects.LightingShader.Value;
+        lightEffect.Parameters["uColor"]?.SetValue(drawColor.ToVector4());
+        lightEffect.Parameters["uTransformMatrix"]?.SetValue(Main.GameViewMatrix.NormalizedTransformationmatrix);
+        lightEffect.CurrentTechnique.Passes[0].Apply();
+
+        device.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, vertices, 0, vertices.Length, indices, 0, indices.Length / 3);
     }
 }

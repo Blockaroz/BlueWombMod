@@ -55,6 +55,57 @@ public sealed partial class Hush : ModNPC
         CheckAndPickAttack();
     }
 
+    public void Interphase_Sink()
+    {
+        const int SinkTime = 257;
+
+        NPC.takenDamageMultiplier = 0.1f;
+
+        if (Time < SinkTime)
+        {
+            NPC.dontTakeDamage = true;
+            NPC.velocity *= 0.5f;
+            SetHome(HushSystem.WombPosition.ToWorldCoordinates() - new Vector2(0, 50));
+
+            Renderer.SinkDown();
+
+            Time++;
+            MiscTime = 0;
+
+            if (Time == SinkTime - 1)
+            {
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
+
+                BreakRadius();
+            }
+        }
+
+        if (Time >= SinkTime)
+        {
+            NPC.dontTakeDamage = false;
+
+            EndAttack();
+
+            if (CheckForTarget())
+            {
+                switch (Phase)
+                {
+                    case 1:
+                        State = (int)BossState.MoveToCenter;
+                        break;
+                    case 2:
+                        State = (int)BossState.GaperTunnel;
+                        break;
+                    case 4:
+                        State = (int)BossState.MouthSalvos;
+                        break;
+                }
+            }
+
+            return;
+        }
+    }
+
     public int GlowTearType { get; private set => field = Math.Abs(value % 3); }
 
     public Vector2 TargetPosition { get; set; }
@@ -431,13 +482,7 @@ public sealed partial class Hush : ModNPC
         {
             GlowTearType++;
             NPC.FaceTarget();
-
-            if (!target.Invalid)
-                TargetPosition = target.Center;
         }
-
-        if (!target.Invalid)
-            TargetPosition = Vector2.Lerp(TargetPosition, target.Center, 0.05f);
 
         if (Time < TotalTime * Repeats)
         {
@@ -455,6 +500,9 @@ public sealed partial class Hush : ModNPC
 
                 if (localTime > ChargeTime / 2)
                     Renderer.Blink();
+
+                TargetPosition = HushSystem.WombPosition.ToWorldCoordinates();
+
             }
             else
             {
@@ -469,18 +517,20 @@ public sealed partial class Hush : ModNPC
                 {
                     Vector2 mouthPos = NPC.Center + new Vector2(0, 70).RotatedBy(NPC.rotation);
 
-                    SoundEngine.PlaySound(SoundID.Item111 with { Pitch = -0.2f }, mouthPos);
+                    for (int i = 0; i < Main.rand.Next(10, 15); i++)
+                    {
+                        Dust.NewDustPerfect(mouthPos + Main.rand.NextVector2Circular(20, 10), DustID.Blood, Main.rand.NextVector2Circular(5, 5), Scale: Main.rand.NextFloat(1f, 2f));
+                    }
 
-                    var splat = HomingTearPopParticle.RequestNew(mouthPos + Vector2.UnitY * 10f, 15, Main.rand.NextFloat(2f, 3f), MathHelper.Pi + Main.rand.NextFloat(-0.2f, 0.2f));
-                    ParticleEngine.Particles.Add(splat);
+                    SoundEngine.PlaySound(SoundID.Item111 with { Pitch = -0.5f }, mouthPos);
 
                     if (Main.netMode != NetmodeID.MultiplayerClient)
                     {
+                        float randomOff = Main.rand.NextFloat(-4f, 4f);
                         for (int i = 0; i < 3; i++)
                         {
-                            Vector2 direction = -Vector2.UnitY.RotatedBy(i / 3f * MathHelper.TwoPi);
-                             
-                            Vector2 velocity = direction.RotatedByRandom(0.2f) * 2f + Vector2.UnitY * 4f;
+                            Vector2 direction = -Vector2.UnitY.RotatedBy(i / 3f * MathHelper.TwoPi + randomOff);
+                            Vector2 velocity = direction.RotatedByRandom(0.2f) * 3f + NPC.DirectionTo(TargetPosition).SafeNormalize(Vector2.Zero);
                             Projectile bloodSplitter = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), mouthPos, velocity, ModContent.ProjectileType<BloodTear>(), 60, 0f);
                             bloodSplitter.ai[1] = (int)BloodTear.Behavior.BigSplit;
                         }
@@ -500,67 +550,48 @@ public sealed partial class Hush : ModNPC
         Time++;
     }
 
-    public void Interphase_SinkRelocate()
+    public void Interphase_MoveToCenter()
     {
-        const int SinkTime = 300;
         const int ConfirmationTime = 10;
 
         NPC.takenDamageMultiplier = 0.1f;
 
-        if (Time < SinkTime)
-        {
-            NPC.dontTakeDamage = true;
-            NPC.velocity *= 0.5f;
-            SetHome(HushSystem.WombPosition.ToWorldCoordinates() - new Vector2(0, 50));
+        NPC.dontTakeDamage = false;
 
-            Renderer.SinkDown();
+        Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Squint;
+        Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Squint;
+        Renderer.Mouth.Scale = new Vector2(0.6f, 1f);
+
+        if (NPC.Distance(HomePosition) < 20)
+        {
+            NPC.velocity *= 0.5f;
+            NPC.Center = Vector2.Lerp(NPC.Center, HomePosition, 0.1f);
 
             Time++;
-            MiscTime = 0;
-
-            if (Time == SinkTime - 1)
-            {
-                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
-
-                BreakRadius();
-            }
         }
         else
         {
-            NPC.dontTakeDamage = false;
+            NPC.velocity = NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 1.67f;
 
-            Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Squint;
-            Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Squint;
-            Renderer.Mouth.Scale = new Vector2(0.6f, 1f);
-
-            if (NPC.Distance(HomePosition) < 20)
-            {
-                NPC.velocity *= 0.5f;
-                NPC.Center = Vector2.Lerp(NPC.Center, HomePosition, 0.1f);
-
-                Time++;
-            }
-            else
-            {
-                NPC.velocity = NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 1.67f;
-
-                if (MiscTime % 10 == 0)
-                    Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 3f, 15, 2, "Hush"));
-            }
-
-            float wobble = Math.Abs(MathF.Sin((MiscTime - SinkTime) * 0.16f)) * NPC.velocity.Length() * 0.5f;
-            Renderer.DrawScale = new Vector2(1f - wobble * 0.07f, 1f + wobble * 0.07f);
-            Renderer.DrawOffset.Y -= (Renderer.DrawScale.Y - 1f) * 20f;
+            if (MiscTime % 10 == 0)
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 3f, 15, 2, "Hush"));
         }
 
-        if (Time >= SinkTime + ConfirmationTime)
+        float wobble = Math.Abs(MathF.Sin(MiscTime * 0.16f)) * NPC.velocity.Length() * 0.5f;
+        Renderer.DrawScale = new Vector2(1f - wobble * 0.07f, 1f + wobble * 0.07f);
+        Renderer.DrawOffset.Y -= (Renderer.DrawScale.Y - 1f) * 20f;
+
+        if (Time >= ConfirmationTime)
         {
             NPC.Center = HomePosition;
             NPC.velocity = Vector2.Zero;
 
             Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
 
+            BreakRadius();
+
             EndAttack();
+
             return;
         }
     }
@@ -770,46 +801,7 @@ public sealed partial class Hush : ModNPC
         Time++;
     }
 
-    public void Interphase_Sink()
-    {
-        const int SinkTime = 300;
-
-        NPC.takenDamageMultiplier = 0.1f;
-
-        if (Time < SinkTime)
-        {
-            NPC.dontTakeDamage = true;
-            NPC.velocity *= 0.5f;
-            SetHome(HushSystem.WombPosition.ToWorldCoordinates() - new Vector2(0, 50));
-
-            Renderer.SinkDown();
-
-            Time++;
-            MiscTime = 0;
-
-            if (Time == SinkTime - 1)
-            {
-                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
-
-                BreakRadius();
-            }
-        }
-
-        if (Time >= SinkTime)
-        {
-            Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
-
-            NPC.dontTakeDamage = false;
-
-            EndAttack();
-
-            if (Phase == 2 && CheckForTarget())
-                State = (int)BossState.GaperTunnel;
-
-            return;
-        }
-    }
-
+ 
     public void Attack_GaperTunnel()
     {
         const int StartUpTime = 55;
@@ -869,7 +861,7 @@ public sealed partial class Hush : ModNPC
             EndAttack();
 
             if (CheckForTarget())
-                State = (int)BossState.RehomeWithBoils;
+                State = (int)BossState.RelocateWithBoils;
 
             return;
         }
@@ -877,7 +869,7 @@ public sealed partial class Hush : ModNPC
         Time++;
     }
 
-    public void Attack_RehomeWithBoils()
+    public void Attack_RelocateWithBoils()
     {
         const int ConfirmationTime = 10;
 
@@ -888,10 +880,11 @@ public sealed partial class Hush : ModNPC
         {
             if (Main.netMode != NetmodeID.MultiplayerClient)
             {
-                Vector2 randomHome = HushSystem.WombPosition.ToWorldCoordinates() + new Vector2(HushSystem.WOMB_RADIUS * 6f, 0).RotatedBy(Main.rand.Next(6) / 6f * MathHelper.TwoPi);
-                
-                if (randomHome.Distance(HomePosition) < 50)
-                    randomHome = HushSystem.WombPosition.ToWorldCoordinates();
+                Vector2 wombCenter = HushSystem.WombPosition.ToWorldCoordinates();
+                Vector2 randomHome = wombCenter + new Vector2(HushSystem.WOMB_RADIUS * Main.rand.NextFloat(4f, 6f), 0).RotatedBy(Main.rand.Next(6) / 6f * MathHelper.TwoPi);
+
+                if (randomHome.Distance(HomePosition) < 80 || (HomePosition.Distance(wombCenter) > 80 && Main.rand.NextBool(3)))
+                    randomHome = wombCenter;
 
                 SetHome(randomHome);
 
@@ -912,7 +905,7 @@ public sealed partial class Hush : ModNPC
             }
             else
             {
-                NPC.velocity = NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 1.67f;
+                NPC.velocity = NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 1.833f;
 
                 if (MiscTime % 10 == 0)
                     Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 3f, 15, 2, "Hush"));
@@ -921,24 +914,26 @@ public sealed partial class Hush : ModNPC
 
         if (Time > ConfirmationTime)
         {
-            Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
+            NPC.Center = HomePosition;
+            NPC.velocity = Vector2.Zero;
+            NPC.dontTakeDamage = false;
 
             BreakRadius();
 
-            NPC.dontTakeDamage = false;
+            Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 10f, 50, 3, "Hush"));
 
             EndAttack();
             return;
         }
     }
 
-    private int ContinuumWaves { get; set; }
+    private byte ContinuumWaves { get; set; }
 
     public void Attack_Continuum()
     {
         if (Time == 0 && Main.netMode != NetmodeID.MultiplayerClient)
         {
-
+            ContinuumWaves = (byte)Main.rand.Next(3, 5);
         }
 
         if (Time > 0)
