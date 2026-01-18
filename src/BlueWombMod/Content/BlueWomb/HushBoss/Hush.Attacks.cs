@@ -936,7 +936,70 @@ public sealed partial class Hush : ModNPC
             ContinuumWaves = (byte)Main.rand.Next(3, 5);
         }
 
-        if (Time > 0)
+        const int StartTime = 43;
+        const int WaveTime = 10 * 14;
+        const int EndTime = 10;
+        int TotalTime = StartTime + WaveTime + EndTime;
+
+        float localTime = Time % TotalTime;
+
+        if (localTime == 0 && Main.netMode != NetmodeID.MultiplayerClient)
+        {
+            NPC.FaceTarget();
+
+            TargetPosition = NPC.Center + 40 * Vector2.UnitX.RotatedBy(Main.rand.Next(4) * MathHelper.PiOver2);
+            NPC.netUpdate = true;
+        }
+
+        Vector2 targetDir = (TargetPosition - NPC.Center).SafeNormalize(Vector2.Zero);
+
+        if (Time < TotalTime * ContinuumWaves)
+        {
+            if (localTime < StartTime)
+            {
+                float chargeProgress = MathF.Sqrt(Utils.GetLerpValue(4, StartTime, localTime, true));
+
+                float xRotation = -targetDir.X * 0.2f * chargeProgress;
+                Renderer.Blink();
+                Renderer.EyeLeft.Rotation += chargeProgress * 0.2f + Math.Max(xRotation, 0);
+                Renderer.EyeRight.Rotation -= chargeProgress * 0.2f + Math.Max(xRotation, 0);
+
+                Renderer.Mouth.Scale *= new Vector2(1f + chargeProgress * 0.1f, 1f - chargeProgress * 0.4f);
+                Renderer.Face.Offset += new Vector2(-targetDir.X * 38, -targetDir.Y * 38 + 10 * MathF.Sin(chargeProgress * MathHelper.Pi)) * chargeProgress;
+                Renderer.Face.Rotation -= xRotation;
+            }
+            else
+            {
+                float throwProgress = MathF.Sqrt(Utils.GetLerpValue(StartTime, StartTime + 10, localTime, true));
+                float throwOvershot = Utils.GetLerpValue(StartTime + 40, StartTime, localTime, true);
+                float endWave = MathHelper.SmoothStep(0, 1, Utils.GetLerpValue(WaveTime + EndTime, WaveTime, localTime - StartTime, true));
+
+                Renderer.Face.Offset += Vector2.Lerp(-targetDir * 38, targetDir * 38 * (0.6f + MathF.Sqrt(throwOvershot) * 0.4f), throwProgress) * endWave;
+                Renderer.Face.Offset += (Main.rand.NextVector2Circular(2, 2) + targetDir * 5) * MathF.Sin(localTime / 16f) * endWave;
+
+                Renderer.Face.Rotation += Utils.AngleLerp(targetDir.X * 0.2f, targetDir.X * 0.2f * MathF.Sin(throwOvershot * MathHelper.TwoPi) * throwOvershot, throwProgress);
+
+                Renderer.Mouth.Scale *= new Vector2(1f - throwProgress * 0.3f * endWave, 1f + throwProgress * 0.3f * endWave);
+
+                if (localTime % 20 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
+                {
+                    for (int i = -1; i < 2; i++)
+                    {
+                        Vector2 spawnPos = NPC.Center + targetDir * 50 + targetDir.RotatedBy(MathHelper.PiOver2) * i * 30;
+                        Vector2 direction = targetDir.RotatedBy(i / 3f * 0.4f) * 4;
+                        Vector2 spawnDirection = targetDir.RotatedBy(i / 3f * 1.8f) * 8;
+                        Projectile continuumTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), spawnPos, direction, ModContent.ProjectileType<ContinuumTear>(), 50, 0f);
+                        continuumTear.velocity = spawnDirection;
+                        continuumTear.ai[1] = Main.rand.NextFloat(-0.2f, 0.2f);
+                        continuumTear.localAI[1] = -1;
+                    }
+                }
+            }       
+        }
+
+        int AttackTotalTime = TotalTime * ContinuumWaves + 50;
+
+        if (Time > AttackTotalTime)
         {
             EndAttack();
             return;

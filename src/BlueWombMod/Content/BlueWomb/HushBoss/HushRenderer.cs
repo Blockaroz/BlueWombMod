@@ -251,16 +251,18 @@ public sealed class HushRenderer(NPC nPC)
         var faceRotation = Face.Rotation;
 
         float faceDist = Utils.GetLerpValue(20, 120, Face.Offset.Length(), true);
+        var unRotatedFaceOff = Face.Offset.RotatedBy(-Face.Rotation);
 
-        Vector2 mouthPos = center + Face.Offset * 0.75f * faceScale + ((Mouth.Offset + new Vector2(0, 48)) * faceScale).RotatedBy(faceRotation);
+        Vector2 mouthPos = center + Face.Offset * new Vector2(1f, 0.8f) * faceScale + ((Mouth.Offset + new Vector2(0, 48)) * faceScale).RotatedBy(faceRotation);
         var mouthScale = faceScale * Mouth.Scale * new Vector2(1f, 1f - faceDist);
+        var mouthRot = Mouth.Rotation + unRotatedFaceOff.X * 0.005f;
 
         Vector2 eyeLeftPos = center + Face.Offset * faceScale + ((EyeLeft.Offset + new Vector2(-74, -16)) * faceScale).RotatedBy(faceRotation);
-        var eyeLeftScale = faceScale * EyeLeft.Scale;
+        var eyeLeftScale = faceScale * EyeLeft.Scale * new Vector2(1f - Math.Abs(Math.Min(unRotatedFaceOff.X, 0)) * 0.005f, 1f);
         var eyeLeftRot = EyeLeft.Rotation + faceDist * 0.5f;
 
         Vector2 eyeRightPos = center + Face.Offset * faceScale + ((EyeRight.Offset + new Vector2(74, -16)) * faceScale).RotatedBy(faceRotation);
-        var eyeRightScale = faceScale * EyeRight.Scale;
+        var eyeRightScale = faceScale * EyeRight.Scale * new Vector2(1f - Math.Abs(Math.Max(unRotatedFaceOff.X, 0)) * 0.005f, 1f);
         var eyeRightRot = EyeRight.Rotation - faceDist * 0.5f;
 
         var texture = Texture.Value;
@@ -287,7 +289,7 @@ public sealed class HushRenderer(NPC nPC)
             if (!HideFace && MoundState == AnimationState.Normal)
             {
                 var mouthFrame = mouthTexture.Frame(1, 3, 0, (int)MouthState);
-                spriteBatch.Draw(mouthTexture, mouthPos, mouthFrame, Color.White, faceRotation + Mouth.Rotation, mouthFrame.Size() / 2, mouthScale, 0, 0);
+                spriteBatch.Draw(mouthTexture, mouthPos, mouthFrame, Color.White, faceRotation + mouthRot, mouthFrame.Size() / 2, mouthScale, 0, 0);
 
                 int eyeLeftFrameNum = EyeStateLeft == EyeAnimationState.Glowing ? 0 : (int)EyeStateLeft;
                 int eyeRightFrameNum = EyeStateRight == EyeAnimationState.Glowing ? 0 : (int)EyeStateRight;

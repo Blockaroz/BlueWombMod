@@ -28,11 +28,12 @@ public sealed class ContinuumTear : ModProjectile
 
     public ref float Time => ref Projectile.ai[0];
 
-    public ref float Curvature => ref Projectile.ai[1];
+    public ref float CurvatureSpeed => ref Projectile.ai[1];
 
     public ref float MiscTime => ref Projectile.localAI[0];
 
     public bool HitWall { get => Projectile.localAI[1] == 1; set => Projectile.localAI[1] = value.ToInt(); }
+    public bool Fresh { get => Projectile.localAI[1] == -1; }
 
     private Vector2 originalVelocity;
     public ref Vector2 OriginalVelocity => ref originalVelocity;
@@ -47,15 +48,17 @@ public sealed class ContinuumTear : ModProjectile
 
     public override void AI()
     {
-        if (Time < 30)
+        if (Time < 20)
             Projectile.tileCollide = false;
-        else if (Time == 30)
+        else if (Time == 20)
             Projectile.tileCollide = true;
 
-        Vector3 cross = Vector3.Cross(new Vector3(OriginalVelocity, 0), Vector3.Forward * (Curvature > 0 ? 1 : -1));
+        Vector3 cross = Vector3.Cross(new Vector3(OriginalVelocity, 0), Vector3.Forward * (CurvatureSpeed > 0 ? 1 : -1));
         Vector2 perpendicular = new Vector2(cross.X, cross.Y);
 
-        Projectile.Opacity = Utils.GetLerpValue(0, 40, Time, true);
+        if (!Fresh)
+            Projectile.Opacity = Utils.GetLerpValue(0, 40, Time, true);
+
         if (HitWall)
             Projectile.Opacity *= Utils.GetLerpValue(10, 60, Projectile.timeLeft, true);
 
@@ -63,9 +66,9 @@ public sealed class ContinuumTear : ModProjectile
 
         if (Time > 30)
         {
-            float beginCurve = Utils.GetLerpValue(0, 20, Time, true);
-            float wave = MathF.Cos(Time / 18f);
-            Projectile.velocity = Vector2.Lerp(Projectile.velocity, OriginalVelocity, 0.1f) + perpendicular * (wave * wave * wave - wave) * beginCurve * Curvature;
+            float beginCurve = Utils.GetLerpValue(20, 40, Time, true);
+            float wave = MathF.Cos(Time * 0.5f * CurvatureSpeed);
+            Projectile.velocity = Vector2.Lerp(Projectile.velocity, OriginalVelocity, 0.1f);
             OriginalVelocity = OriginalVelocity.SafeNormalize(Vector2.Zero) * (OriginalVelocity.Length() + 0.002f);
         }
 
@@ -87,7 +90,7 @@ public sealed class ContinuumTear : ModProjectile
         if (Projectile.timeLeft > 60)
         {
             Point pt = Projectile.Center.ToTileCoordinates();
-            Point dir = originalVelocity.SafeNormalize(Vector2.Zero).ToPoint();
+            Point dir = (originalVelocity.SafeNormalize(Vector2.Zero) * 1.2f).ToPoint();
 
             for (int i = 0; i < 80; i++)
             {
@@ -95,21 +98,28 @@ public sealed class ContinuumTear : ModProjectile
                 pt.Y -= dir.Y;
 
                 // Dust.QuickDust(pt, Color.Purple);
-                if (i > 5 && WorldGen.SolidOrSlopedTile(pt.X, pt.Y))
+
+                int solidCount = 0;
+                if (WorldGen.SolidOrSlopedTile(pt.X, pt.Y))
                 {
-                    pt.X -= dir.X * 2;
-                    pt.Y -= dir.Y * 2;
-
-                    if (Main.myPlayer == Projectile.owner)
+                    if (i > 5 && solidCount < 4)
                     {
-                        var tear = Projectile.NewProjectileDirect(Projectile.GetItemSource_FromThis(), pt.ToWorldCoordinates(), OriginalVelocity, Type, Projectile.damage, Projectile.knockBack);
-                        tear.ai[1] = Projectile.ai[1];
-                        tear.ai[2] = Projectile.ai[2];
-                        tear.localAI[0] = Projectile.localAI[0];
-                        tear.timeLeft = Projectile.timeLeft - 5;
-                    }
+                        pt.X -= dir.X * 2;
+                        pt.Y -= dir.Y * 2;
 
-                    break;
+                        if (Main.myPlayer == Projectile.owner)
+                        {
+                            var tear = Projectile.NewProjectileDirect(Projectile.GetItemSource_FromThis(), pt.ToWorldCoordinates(), OriginalVelocity, Type, Projectile.damage, Projectile.knockBack);
+                            tear.ai[1] = Projectile.ai[1];
+                            tear.ai[2] = Projectile.ai[2];
+                            tear.localAI[0] = Projectile.localAI[0];
+                            tear.timeLeft = Projectile.timeLeft - 5;
+                        }
+
+                        break;
+                    }
+                    else
+                        solidCount++;
                 }
             }
 
