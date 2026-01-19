@@ -68,8 +68,8 @@ public sealed class ContinuumTear : ModProjectile
         {
             float beginCurve = Utils.GetLerpValue(20, 40, Time, true);
             float wave = MathF.Cos(Time * 0.5f * CurvatureSpeed);
-            Projectile.velocity = Vector2.Lerp(Projectile.velocity, OriginalVelocity, 0.1f);
-            OriginalVelocity = OriginalVelocity.SafeNormalize(Vector2.Zero) * (OriginalVelocity.Length() + 0.002f);
+            Projectile.velocity = Vector2.Lerp(Projectile.velocity, OriginalVelocity, 0.1f) + wave * perpendicular * beginCurve * CurvatureSpeed * 1.33f;
+            OriginalVelocity = OriginalVelocity.SafeNormalize(Vector2.Zero) * (OriginalVelocity.Length() + 0.0025f);
         }
 
         if (Projectile.timeLeft < 60)
@@ -89,27 +89,27 @@ public sealed class ContinuumTear : ModProjectile
 
         if (Projectile.timeLeft > 60)
         {
-            Point pt = Projectile.Center.ToTileCoordinates();
-            Point dir = (originalVelocity.SafeNormalize(Vector2.Zero) * 1.2f).ToPoint();
+            Vector2 pt = Projectile.Center;
+            Vector2 dir = originalVelocity.SafeNormalize(Vector2.Zero) * 24f;
 
             for (int i = 0; i < 80; i++)
             {
-                pt.X -= dir.X;
-                pt.Y -= dir.Y;
+                pt -= dir;
 
                 // Dust.QuickDust(pt, Color.Purple);
 
                 int solidCount = 0;
-                if (WorldGen.SolidOrSlopedTile(pt.X, pt.Y))
+                if (WorldGen.SolidOrSlopedTile((int)(pt.X / 16f), (int)(pt.Y / 16f)))
                 {
-                    if (i > 5 && solidCount < 4)
+                    solidCount++;
+
+                    if (i > 5 && solidCount < 5)
                     {
-                        pt.X -= dir.X * 2;
-                        pt.Y -= dir.Y * 2;
+                        pt -= dir * 2;
 
                         if (Main.myPlayer == Projectile.owner)
                         {
-                            var tear = Projectile.NewProjectileDirect(Projectile.GetItemSource_FromThis(), pt.ToWorldCoordinates(), OriginalVelocity, Type, Projectile.damage, Projectile.knockBack);
+                            var tear = Projectile.NewProjectileDirect(Projectile.GetItemSource_FromThis(), pt, OriginalVelocity, Type, Projectile.damage, Projectile.knockBack);
                             tear.ai[1] = Projectile.ai[1];
                             tear.ai[2] = Projectile.ai[2];
                             tear.localAI[0] = Projectile.localAI[0];
@@ -118,8 +118,6 @@ public sealed class ContinuumTear : ModProjectile
 
                         break;
                     }
-                    else
-                        solidCount++;
                 }
             }
 

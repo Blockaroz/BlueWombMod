@@ -302,7 +302,10 @@ public sealed partial class Hush : ModNPC
         AttackPool.Add(BossState.GaperTunnel, 5.0, Condition_Phase3);
         AttackPool.Add(BossState.Continuum, 7.0, Condition_Phase3);
 
+        AttackPool.Add(BossState.Chase, 5.0, Condition_Phase4);
         AttackPool.Add(BossState.Hemorrhage, 3.5, Condition_Phase4);
+
+        AttackPool.Add(BossState.TearBeams, 5.0, Condition_Phase5);
     }
 
     public bool Condition_Phase2() => Phase >= 1;
@@ -319,11 +322,13 @@ public sealed partial class Hush : ModNPC
         {
             State = (int)BossState.Sink;
             Phase++;
+
+            Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.UnitY * 4, 5f, 200, 2, uniqueID: "HushQuake"));
             return;
         }
 
         if (CheckForTarget())
-            State = (int)BossState.Continuum;//AttackPool.PickFromTop(4, 0.2);
+            State = (int)AttackPool.PickFromTop(4, 0.25);
         else
             State = (int)BossState.Despawning;
 

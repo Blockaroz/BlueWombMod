@@ -990,14 +990,14 @@ public sealed partial class Hush : ModNPC
                         Vector2 spawnDirection = targetDir.RotatedBy(i / 3f * 1.8f) * 8;
                         Projectile continuumTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), spawnPos, direction, ModContent.ProjectileType<ContinuumTear>(), 50, 0f);
                         continuumTear.velocity = spawnDirection;
-                        continuumTear.ai[1] = Main.rand.NextFloat(-0.2f, 0.2f);
+                        continuumTear.ai[1] = (Main.rand.NextFloat(-0.5f, 0.5f) + i) * 0.2f;
                         continuumTear.localAI[1] = -1;
                     }
                 }
             }       
         }
 
-        int AttackTotalTime = TotalTime * ContinuumWaves + 50;
+        int AttackTotalTime = TotalTime * ContinuumWaves + 143;
 
         if (Time > AttackTotalTime)
         {
