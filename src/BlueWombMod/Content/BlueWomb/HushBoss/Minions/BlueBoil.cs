@@ -132,7 +132,7 @@ public sealed class BlueBoil : ModNPC
                     Vector2 center = newPosition / surfaces;
 
                     NPC.rotation = angle - MathHelper.PiOver2;
-                    NPC.Center = center - (newAngle / surfaces) * (10 + 10 * Math.Abs(MathF.Cos(angle * 2)));
+                    NPC.Center = center - (newAngle / surfaces);
                 }
             }
 

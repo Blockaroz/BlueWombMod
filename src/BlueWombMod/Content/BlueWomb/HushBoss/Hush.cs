@@ -81,7 +81,6 @@ public sealed partial class Hush : ModNPC
     public override void AI()
     {
         SetStats();
-        CreativeShockPlayers();
 
         Renderer.Reset();
         float wobble = Math.Abs(MathF.Sin(MiscTime * 0.15f));
@@ -133,7 +132,7 @@ public sealed partial class Hush : ModNPC
     public void SetStats()
     {
         NPC.defense = 50;
-        NPC.takenDamageMultiplier = 0.6f;
+        NPC.takenDamageMultiplier = 0.67f;
     }
 
     public void BuildLootBox()
@@ -166,18 +165,6 @@ public sealed partial class Hush : ModNPC
                     Point tilePos = NPC.Center.ToTileCoordinates() + new Point(i, j);
                     WorldGen.KillTile(tilePos.X, tilePos.Y);
                 }
-            }
-        }
-    }
-
-    public void CreativeShockPlayers()
-    {
-        foreach (Player player in Main.ActivePlayers)
-        {
-            if (player.ZoneBlueWomb)
-            {
-                player.AddBuff(BuffID.NoBuilding, 60, true);
-                player.noBuilding = true;
             }
         }
     }

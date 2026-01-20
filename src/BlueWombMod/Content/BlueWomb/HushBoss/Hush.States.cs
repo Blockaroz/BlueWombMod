@@ -312,7 +312,7 @@ public sealed partial class Hush : ModNPC
         AttackPool.Add(BossState.Chase, 5.0, Condition_Phase4);
         AttackPool.Add(BossState.Hemorrhage, 3.5, Condition_Phase4);
 
-        AttackPool.Add(BossState.TheLasers, 5.0, Condition_Phase5);
+        AttackPool.Add(BossState.TheLasers, 3.0, Condition_Phase5);
     }
 
     public bool Condition_Phase2() => Phase >= 1;
@@ -337,7 +337,7 @@ public sealed partial class Hush : ModNPC
             }
 
             if (CheckForTarget())
-                State = (int)AttackPool.PickFromTop(4, 0.25);
+                State = (int)AttackPool.PickFromTop(4, 0.1666);
             else
                 State = (int)BossState.Despawning;
 

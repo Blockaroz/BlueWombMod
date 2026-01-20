@@ -1102,6 +1102,65 @@ public sealed partial class Hush : ModNPC
 
     public void Attack_TheLasers()
     {
+        const int ChargeTime = 92;
+        const int LaseringTime = 333;
+        const int TotalTime = ChargeTime + LaseringTime;
 
+        if (Time < ChargeTime)
+        {
+            float chargeProgress = MathF.Sqrt(Utils.GetLerpValue(4, ChargeTime, Time, true));
+
+            Renderer.Blink();
+            Renderer.EyeLeft.Rotation += chargeProgress * 0.23f;
+            Renderer.EyeRight.Rotation -= chargeProgress * 0.23f;
+
+            Renderer.DrawScale *= new Vector2(1f + chargeProgress * 0.1f, 1f - chargeProgress * 0.1f);
+            Renderer.Face.Offset += new Vector2(Main.rand.NextFloat(-8f, 8f), 38 + 10 * MathF.Sin(chargeProgress * MathHelper.Pi)) * chargeProgress;
+
+            Renderer.Mouth.Scale *= new Vector2(1f + chargeProgress * 0.1f, 1f - chargeProgress * 0.6f);
+        }
+        else if (Time < ChargeTime + LaseringTime)
+        {
+            NPC.takenDamageMultiplier = 0.1f;
+            NPC.defense = 100;
+
+            float spewProgress = Utils.GetLerpValue(ChargeTime, ChargeTime + 14, Time, true);
+
+            float wobble = MathF.Sin(Time * 1.5f);
+            Renderer.DrawScale *= new Vector2(1f + wobble * 0.04f, 1f - wobble * 0.03f);
+            Renderer.Face.Offset += new Vector2(0, 38 - 75 * spewProgress);
+
+            Renderer.MouthState = HushRenderer.MouthAnimationState.Wide;
+            Renderer.Mouth.Scale *= new Vector2(0.9f - wobble * 0.04f, 1.3f - wobble * 0.1f);
+            Renderer.Mouth.Offset.Y += (Renderer.Mouth.Scale.Y - 1f) * 10f;
+
+            Renderer.GlowLeft(Color.GhostWhite);
+            Renderer.GlowRight(Color.GhostWhite);
+
+            if (Time == ChargeTime + 10 && Main.netMode != NetmodeID.MultiplayerClient)
+            {
+
+            }
+        }
+        else
+        {
+            float normalizeTime = Utils.GetLerpValue(TotalTime + 50, TotalTime, Time, true);
+            Renderer.Face.Rotation += MathF.Sin(Time * 0.18f) * normalizeTime * 0.2f;
+
+            if (Time < TotalTime + 20)
+                Renderer.Blink();
+
+            Renderer.Face.Offset += new Vector2(0, -20 + 60 * MathF.Sin(normalizeTime * MathHelper.Pi)) * normalizeTime;
+            Renderer.Mouth.Scale *= new Vector2(1f + normalizeTime * 0.15f, 1f - normalizeTime * 0.8f);
+        }
+
+        if (Time > TotalTime + 80)
+        {
+            Time = 0;
+            //EndAttack();
+            return;
+        }
+
+        Time++;
     }
 }
