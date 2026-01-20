@@ -51,6 +51,7 @@ Projectiles: {
 	SpoonBenderTear.DisplayName: Spoon Bender Tear
 	ContinuumTear.DisplayName: Continuum Tear
 	GlowingEyeTear.DisplayName: Glowing Eye Tear
+	HushLaser.DisplayName: Hush Laser
 }
 
 NPCs: {
@@ -73,12 +74,12 @@ NPCs: {
 
 	Hush: {
 		DisplayName: Hush
-		FlavorText: Within the abominous blue mass stands this monster made from the fear of impending doom.
+		FlavorText: Within the abominous blue mass stands this demon made from fear and impending doom, taking up the role of the world guardian.
 	}
 
 	BlueGaper: {
 		DisplayName: Blue Gaper
-		FlavorText: The epitome of the dead womb, a small growth. Its ability to float is a strange adaptation to the environment.
+		FlavorText: A child of death. Its ability to float is a strange adaptation to the environment.
 	}
 
 	HushFly: {
@@ -90,6 +91,6 @@ NPCs: {
 
 	BlueBoil: {
 		DisplayName: Blue Boil
-		FlavorText: Mods.BlueWombMod.NPCs.BlueBoil.FlavorText
+		FlavorText: The epitome of the dead womb, a weak and small growth.
 	}
 }

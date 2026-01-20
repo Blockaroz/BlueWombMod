@@ -51,13 +51,13 @@ public sealed class PooterFly : ModNPC
 
     public override void AI()
     {
-        DrawScale = Vector2.One;
-
         if (NPC.HasBuff(BuffID.Frozen))
         {
             NPC.velocity *= 0.2f;
             return;
         }
+
+        DrawScale = Vector2.One;
 
         float aimOffset = 0f;
         if (NPC.HasBuff(BuffID.Confused))

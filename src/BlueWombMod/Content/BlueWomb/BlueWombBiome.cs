@@ -53,9 +53,7 @@ public sealed class BlueWombDarknessSystem : ModSystem
         orig(self, x, y, out outputColor);
 
         if (!HushSystem.WombInWorld)
-        {
             return;
-        }
 
         if (!WorldGen.SolidOrSlopedTile(x, y))
         {
@@ -71,13 +69,9 @@ public sealed class BlueWombDarknessSystem : ModSystem
     public override void ModifyLightingBrightness(ref float scale)
     {
         if (Main.LocalPlayer.ZoneBlueWomb)
-        {
             lightFade += 0.025f;
-        }
         else
-        {
             lightFade -= 0.075f;
-        }
 
         lightFade = Math.Clamp(lightFade, 0f, 1f);
 

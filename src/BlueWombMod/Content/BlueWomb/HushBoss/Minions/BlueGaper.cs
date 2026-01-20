@@ -18,7 +18,8 @@ public sealed class BlueGaper : ModNPC
         NPC.width = 40;
         NPC.height = 40;
 
-        NPC.lifeMax = 90;
+        NPC.lifeMax = 120;
+        NPC.takenDamageMultiplier = 1.5f;
         NPC.noGravity = true;
         NPC.knockBackResist = 0.3f;
 

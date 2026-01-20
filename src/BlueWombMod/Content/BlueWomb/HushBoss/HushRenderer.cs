@@ -23,7 +23,7 @@ public sealed class HushRenderer(NPC nPC)
     {
         Normal,
         InGround,
-        InGroundNoFace,
+        InGroundCustomFace,
         GaperTunnel
     }
 
@@ -200,14 +200,14 @@ public sealed class HushRenderer(NPC nPC)
 
     public void SinkDown(bool face = true)
     {
-        MoundState = face ? AnimationState.InGround : AnimationState.InGroundNoFace;
+        MoundState = face ? AnimationState.InGround : AnimationState.InGroundCustomFace;
     }
 
     private void AnimateMound()
     {
         const int InGroundTime = 18;
 
-        if (MoundState is AnimationState.InGround or AnimationState.InGroundNoFace)
+        if (MoundState is AnimationState.InGround or AnimationState.InGroundCustomFace)
         {
             if (sinkTime < InGroundTime)
                 sinkTime++;
@@ -219,6 +219,13 @@ public sealed class HushRenderer(NPC nPC)
         else if (sinkTime > 0)
         {
             sinkTime--;
+
+            if (sinkTime == InGroundTime - 1)
+            {
+                EyeStateLeft = EyeAnimationState.Closed;
+                EyeStateRight = EyeAnimationState.Closed;
+                Blink();
+            }
 
             float bounceOutOfFloor = MathF.Sqrt(Math.Abs(MathF.Sin(Utils.GetLerpValue(InGroundTime, 0, sinkTime, true) * 3f)));
             DrawScale *= new Vector2(1f - 0.25f * bounceOutOfFloor, 1f + bounceOutOfFloor * 0.2f);
@@ -248,6 +255,9 @@ public sealed class HushRenderer(NPC nPC)
 
         var center = Hush.DrawTarget.Size() / 4f;
         var faceScale = Face.Scale * new Vector2(1f - Math.Abs(MathF.Sin(Face.Rotation)) * 0.15f, 1f + Math.Abs(MathF.Sin(Face.Rotation)) * 0.12f);
+        if (MoundState == AnimationState.InGroundCustomFace)
+            faceScale *= 0.9f;
+
         var faceRotation = Face.Rotation;
 
         float faceDist = Utils.GetLerpValue(20, 120, Face.Offset.Length(), true);
@@ -286,10 +296,12 @@ public sealed class HushRenderer(NPC nPC)
                 spriteBatch.Draw(texture, center, frame, Color.White, 0, frame.Size() / 2, 1f, 0, 0);
             }
 
-            if (!HideFace && MoundState == AnimationState.Normal)
+            if (!HideFace && MoundState is AnimationState.Normal or AnimationState.InGroundCustomFace)
             {
+                Color faceColor = MoundState == AnimationState.InGroundCustomFace ? new Color(210, 220, 220) * 0.5f : Color.White;
+
                 var mouthFrame = mouthTexture.Frame(1, 3, 0, (int)MouthState);
-                spriteBatch.Draw(mouthTexture, mouthPos, mouthFrame, Color.White, faceRotation + mouthRot, mouthFrame.Size() / 2, mouthScale, 0, 0);
+                spriteBatch.Draw(mouthTexture, mouthPos, mouthFrame, faceColor, faceRotation + mouthRot, mouthFrame.Size() / 2, mouthScale, 0, 0);
 
                 int eyeLeftFrameNum = EyeStateLeft == EyeAnimationState.Glowing ? 0 : (int)EyeStateLeft;
                 int eyeRightFrameNum = EyeStateRight == EyeAnimationState.Glowing ? 0 : (int)EyeStateRight;
@@ -297,8 +309,8 @@ public sealed class HushRenderer(NPC nPC)
                 Rectangle eyeLeftFrame = eyeTexture.Frame(2, 4, 0, eyeLeftFrameNum);
                 Rectangle eyeRightFrame = eyeTexture.Frame(2, 4, 1, eyeRightFrameNum);
 
-                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftFrame, Color.White, faceRotation + eyeLeftRot, eyeLeftFrame.Size() / 2, eyeLeftScale, 0, 0);
-                spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightFrame, Color.White, faceRotation + eyeRightRot, eyeRightFrame.Size() / 2, eyeRightScale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeLeftPos, eyeLeftFrame, faceColor, faceRotation + eyeLeftRot, eyeLeftFrame.Size() / 2, eyeLeftScale, 0, 0);
+                spriteBatch.Draw(eyeTexture, eyeRightPos, eyeRightFrame, faceColor, faceRotation + eyeRightRot, eyeRightFrame.Size() / 2, eyeRightScale, 0, 0);
             }
 
             spriteBatch.End();
@@ -309,12 +321,7 @@ public sealed class HushRenderer(NPC nPC)
 
         spriteBatch.Begin(ss with { SortMode = SpriteSortMode.Immediate });
 
-        Color baseColor = Color.White;
-
-        if (HideMound)
-        {
-            baseColor = new Color(225, 225, 225) * 0.85f;
-        }
+        Color baseColor = HideMound ? new Color(219, 219, 219) * 0.9f : Color.White;
 
         var scale = NPC.scale * DrawScale;
 

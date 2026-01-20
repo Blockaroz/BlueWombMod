@@ -467,89 +467,6 @@ public sealed partial class Hush : ModNPC
         Time++;
     }
 
-    public void Attack_Hemorrhage()
-    {
-        const int ChargeTime = 20;
-        const int VolleyTime = 30;
-        const int TotalTime = ChargeTime + VolleyTime;
-        const int Repeats = 1;
-
-        float localTime = Time % TotalTime;
-
-        NPCAimedTarget target = NPC.GetTargetData();
-
-        if (Time == 0)
-        {
-            GlowTearType++;
-            NPC.FaceTarget();
-        }
-
-        if (Time < TotalTime * Repeats)
-        {
-            if (localTime < ChargeTime)
-            {
-                float chargeProgress = MathF.Sqrt(Utils.GetLerpValue(0, ChargeTime, localTime, true));
-                Renderer.MouthState = HushRenderer.MouthAnimationState.Chewing;
-                Renderer.Mouth.Scale = new Vector2(1.2f - chargeProgress * (0.4f + Main.rand.NextFloat(0.3f)), 0.5f + chargeProgress * (0.7f + Main.rand.NextFloat(0.2f)));
-
-                Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Squint;
-                Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Squint;
-
-                Renderer.DrawScale *= new Vector2(1f + chargeProgress * 0.15f, 1f - chargeProgress * 0.2f);
-                Renderer.DrawOffset.X += Main.rand.NextFloat(-4f, 4f) * chargeProgress;
-
-                if (localTime > ChargeTime / 2)
-                    Renderer.Blink();
-
-                TargetPosition = HushSystem.WombPosition.ToWorldCoordinates();
-
-            }
-            else
-            {
-                float spitProgress = MathF.Sqrt(Utils.GetLerpValue(ChargeTime, ChargeTime + VolleyTime, localTime, true));
-                Renderer.MouthState = HushRenderer.MouthAnimationState.Wide;
-                Renderer.Mouth.Scale = new Vector2(0.8f + MathF.Pow(spitProgress, 6f) * 0.25f, 0.7f + MathF.Sin(spitProgress * MathHelper.Pi) * 0.7f);
-                Renderer.Mouth.Offset.Y += (Renderer.Mouth.Scale.Y - 1f) * 7f;
-
-                Renderer.DrawScale *= new Vector2(1f - MathF.Sin(spitProgress * MathHelper.Pi) * 0.2f, 1f + MathF.Sin(spitProgress * MathHelper.Pi) * 0.2f);
-
-                if (localTime == ChargeTime)
-                {
-                    Vector2 mouthPos = NPC.Center + new Vector2(0, 70).RotatedBy(NPC.rotation);
-
-                    for (int i = 0; i < Main.rand.Next(10, 15); i++)
-                    {
-                        Dust.NewDustPerfect(mouthPos + Main.rand.NextVector2Circular(20, 10), DustID.Blood, Main.rand.NextVector2Circular(5, 5), Scale: Main.rand.NextFloat(1f, 2f));
-                    }
-
-                    SoundEngine.PlaySound(SoundID.Item111 with { Pitch = -0.5f }, mouthPos);
-
-                    if (Main.netMode != NetmodeID.MultiplayerClient)
-                    {
-                        float randomOff = Main.rand.NextFloat(-4f, 4f);
-                        for (int i = 0; i < 3; i++)
-                        {
-                            Vector2 direction = -Vector2.UnitY.RotatedBy(i / 3f * MathHelper.TwoPi + randomOff);
-                            Vector2 velocity = direction.RotatedByRandom(0.2f) * 3f + NPC.DirectionTo(TargetPosition).SafeNormalize(Vector2.Zero);
-                            Projectile bloodSplitter = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), mouthPos, velocity, ModContent.ProjectileType<BloodTear>(), 60, 0f);
-                            bloodSplitter.ai[1] = (int)BloodTear.Behavior.BigSplit;
-                        }
-                    }
-                }
-            }
-
-            Renderer.DrawOffset.Y += (Renderer.DrawScale.Y - 1f) * 70f;
-        }
-
-        if (Time >= TotalTime * Repeats + 22)
-        {
-            EndAttack();
-            return;
-        }
-
-        Time++;
-    }
-
     public void Interphase_MoveToCenter()
     {
         const int ConfirmationTime = 10;
@@ -909,6 +826,12 @@ public sealed partial class Hush : ModNPC
 
                 if (MiscTime % 10 == 0)
                     Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 3f, 15, 2, "Hush"));
+
+                if (MiscTime % 30 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
+                {
+                    Vector2 spawnPosition = HushSystem.WombPosition.ToWorldCoordinates() + new Vector2(0, HushSystem.WOMB_RADIUS * 12).RotatedBy(Main.rand.NextFloat(-4f, 4f));
+                    NPC.NewNPCDirect(NPC.GetSource_FromThis(), spawnPosition, ModContent.NPCType<BlueBoil>());
+                }
             }
         }
 
@@ -927,12 +850,181 @@ public sealed partial class Hush : ModNPC
         }
     }
 
+    public void Attack_Chase()
+    {
+        const int TotalTime = 200;
+
+        if (!CheckForTarget())
+        {
+            EndAttack();
+            return;
+        }
+
+        var target = NPC.GetTargetData();
+        NPC.FaceTarget();
+
+        Vector2 center = HushSystem.WombPosition.ToWorldCoordinates();
+        TargetPosition = Vector2.Lerp(target.Center, center, Utils.GetLerpValue(300, 400, NPC.Distance(center), true));
+
+        if (Time < TotalTime)
+        {
+            Renderer.SinkDown(false);
+
+            Renderer.EyeLeft.Scale *= 1.2f;
+            Renderer.EyeRight.Scale *= 1.2f;
+            Renderer.MouthState = HushRenderer.MouthAnimationState.Wide;
+
+            Renderer.Face.Offset.X += MathF.Sin(Time * 1.4f) * 2f;
+
+            NPC.dontTakeDamage = true;
+
+            NPC.velocity = NPC.DirectionTo(TargetPosition).SafeNormalize(Vector2.Zero) * 1.5f;
+
+            const int WaveTime = 43;
+            if (Time % WaveTime == 0 && Main.netMode != NetmodeID.MultiplayerClient)
+            {
+                NPC.netUpdate = true;
+
+                if (Main.netMode != NetmodeID.MultiplayerClient)
+                {
+                    Vector2 spawnPosition = HushSystem.WombPosition.ToWorldCoordinates() + new Vector2(0, HushSystem.WOMB_RADIUS * 12).RotatedBy(Main.rand.NextFloat(-4f, 4f));
+                    NPC.NewNPCDirect(NPC.GetSource_FromThis(), spawnPosition, ModContent.NPCType<BlueBoil>());
+                }
+
+                GlowTearType++;
+                var colorType = GlowTearType;
+
+                Vector2 eyePosition = NPC.Center + new Vector2(80 * NPC.direction, -10).RotatedBy(Renderer.Face.Rotation + NPC.rotation) * Renderer.DrawScale;
+
+                int count = Time % (WaveTime * 2) == 0 ? 7 : 6;
+                if (Time % (WaveTime * 3) == 0)
+                {
+                    colorType = 3;
+                    GlowTearType--;
+                }
+
+                var damage = colorType == 3 ? 60 : 30;
+                var aiType = colorType == 3 ? (int)GlowingEyeTear.Behavior.BurstSpeed : (int)GlowingEyeTear.Behavior.VelocityGain;
+                for (int i = 0; i < count; i++)
+                {
+                    Vector2 direction = new Vector2(0, 2f).RotatedBy(Time * 0.03f * NPC.direction + (float)i / count * MathHelper.TwoPi);
+                    Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), eyePosition, direction, ModContent.ProjectileType<GlowingEyeTear>(), damage, 0f);
+                    glowTear.ai[0] = aiType;
+                    glowTear.localAI[0] = colorType;
+                }
+            }
+        }
+        else
+        {
+            NPC.dontTakeDamage = false;
+
+            if (Time == TotalTime)
+                BreakRadius();
+
+            NPC.velocity *= 0.95f;
+        }
+
+        if (Time > TotalTime + 50)
+        {
+            NPC.dontTakeDamage = false;
+
+            EndAttack();
+            return;
+        }
+
+        Time++;
+    }
+
+    public void Attack_Hemorrhage()
+    {
+        const int ChargeTime = 20;
+        const int VolleyTime = 30;
+        const int TotalTime = ChargeTime + VolleyTime;
+        const int Repeats = 1;
+
+        float localTime = Time % TotalTime;
+
+        NPCAimedTarget target = NPC.GetTargetData();
+
+        if (Time == 0)
+        {
+            GlowTearType++;
+            NPC.FaceTarget();
+        }
+
+        if (Time < TotalTime * Repeats)
+        {
+            if (localTime < ChargeTime)
+            {
+                float chargeProgress = MathF.Sqrt(Utils.GetLerpValue(0, ChargeTime, localTime, true));
+                Renderer.MouthState = HushRenderer.MouthAnimationState.Chewing;
+                Renderer.Mouth.Scale = new Vector2(1.2f - chargeProgress * (0.4f + Main.rand.NextFloat(0.3f)), 0.5f + chargeProgress * (0.7f + Main.rand.NextFloat(0.2f)));
+
+                Renderer.EyeStateLeft = HushRenderer.EyeAnimationState.Squint;
+                Renderer.EyeStateRight = HushRenderer.EyeAnimationState.Squint;
+
+                Renderer.DrawScale *= new Vector2(1f + chargeProgress * 0.15f, 1f - chargeProgress * 0.2f);
+                Renderer.DrawOffset.X += Main.rand.NextFloat(-4f, 4f) * chargeProgress;
+
+                if (localTime > ChargeTime / 2)
+                    Renderer.Blink();
+
+                TargetPosition = HushSystem.WombPosition.ToWorldCoordinates();
+
+            }
+            else
+            {
+                float spitProgress = MathF.Sqrt(Utils.GetLerpValue(ChargeTime, ChargeTime + VolleyTime, localTime, true));
+                Renderer.MouthState = HushRenderer.MouthAnimationState.Wide;
+                Renderer.Mouth.Scale = new Vector2(0.8f + MathF.Pow(spitProgress, 6f) * 0.25f, 0.7f + MathF.Sin(spitProgress * MathHelper.Pi) * 0.7f);
+                Renderer.Mouth.Offset.Y += (Renderer.Mouth.Scale.Y - 1f) * 7f;
+
+                Renderer.DrawScale *= new Vector2(1f - MathF.Sin(spitProgress * MathHelper.Pi) * 0.2f, 1f + MathF.Sin(spitProgress * MathHelper.Pi) * 0.2f);
+
+                if (localTime == ChargeTime)
+                {
+                    Vector2 mouthPos = NPC.Center + new Vector2(0, 70).RotatedBy(NPC.rotation);
+
+                    for (int i = 0; i < Main.rand.Next(10, 15); i++)
+                    {
+                        Dust.NewDustPerfect(mouthPos + Main.rand.NextVector2Circular(20, 10), DustID.Blood, Main.rand.NextVector2Circular(5, 5), Scale: Main.rand.NextFloat(1f, 2f));
+                    }
+
+                    SoundEngine.PlaySound(SoundID.Item111 with { Pitch = -0.5f }, mouthPos);
+
+                    if (Main.netMode != NetmodeID.MultiplayerClient)
+                    {
+                        float randomOff = Main.rand.NextFloat(-4f, 4f);
+                        for (int i = 0; i < 3; i++)
+                        {
+                            Vector2 direction = -Vector2.UnitY.RotatedBy(i / 3f * MathHelper.TwoPi + randomOff);
+                            Vector2 velocity = direction.RotatedByRandom(0.2f) * 3f + NPC.DirectionTo(TargetPosition).SafeNormalize(Vector2.Zero);
+                            Projectile bloodSplitter = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), mouthPos, velocity, ModContent.ProjectileType<BloodTear>(), 60, 0f);
+                            bloodSplitter.ai[1] = (int)BloodTear.Behavior.BigSplit;
+                        }
+                    }
+                }
+            }
+
+            Renderer.DrawOffset.Y += (Renderer.DrawScale.Y - 1f) * 70f;
+        }
+
+        if (Time >= TotalTime * Repeats + 22)
+        {
+            EndAttack();
+            return;
+        }
+
+        Time++;
+    }
+
     private byte ContinuumWaves { get; set; }
 
     public void Attack_Continuum()
     {
         if (Time == 0 && Main.netMode != NetmodeID.MultiplayerClient)
         {
+            NPC.netUpdate = true;
             ContinuumWaves = (byte)Main.rand.Next(3, 5);
         }
 
@@ -990,14 +1082,14 @@ public sealed partial class Hush : ModNPC
                         Vector2 spawnDirection = targetDir.RotatedBy(i / 3f * 1.8f) * 8;
                         Projectile continuumTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), spawnPos, direction, ModContent.ProjectileType<ContinuumTear>(), 50, 0f);
                         continuumTear.velocity = spawnDirection;
-                        continuumTear.ai[1] = (Main.rand.NextFloat(-0.5f, 0.5f) + i) * 0.2f;
+                        continuumTear.ai[1] = (Main.rand.NextFloat(-0.5f, 0.5f) + i) * 0.1f;
                         continuumTear.localAI[1] = -1;
                     }
                 }
             }       
         }
 
-        int AttackTotalTime = TotalTime * ContinuumWaves + 143;
+        int AttackTotalTime = TotalTime * ContinuumWaves + 218;
 
         if (Time > AttackTotalTime)
         {
@@ -1006,5 +1098,10 @@ public sealed partial class Hush : ModNPC
         }
 
         Time++;
+    }
+
+    public void Attack_TheLasers()
+    {
+
     }
 }

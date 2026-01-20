@@ -39,7 +39,7 @@ public sealed partial class Hush : ModNPC
         Chase,
         Hemorrhage,
         // Phase 5
-        TearBeams
+        TheLasers
     }
 
     public void DoCurrentState()
@@ -97,8 +97,15 @@ public sealed partial class Hush : ModNPC
                 Attack_Continuum();
                 break;
 
+            case (int)BossState.Chase:
+                Attack_Chase();
+                break;
             case (int)BossState.Hemorrhage:
                 Attack_Hemorrhage();
+                break;
+
+            case (int)BossState.TheLasers:
+                Attack_TheLasers();
                 break;
         }
     }
@@ -305,7 +312,7 @@ public sealed partial class Hush : ModNPC
         AttackPool.Add(BossState.Chase, 5.0, Condition_Phase4);
         AttackPool.Add(BossState.Hemorrhage, 3.5, Condition_Phase4);
 
-        AttackPool.Add(BossState.TearBeams, 5.0, Condition_Phase5);
+        AttackPool.Add(BossState.TheLasers, 5.0, Condition_Phase5);
     }
 
     public bool Condition_Phase2() => Phase >= 1;
@@ -315,23 +322,27 @@ public sealed partial class Hush : ModNPC
 
     public void CheckAndPickAttack()
     {
-        Time = 0;
-        MiscTime = 0;
-
-        if (CheckPhaseChangeNeeded())
+        if (Main.netMode != NetmodeID.MultiplayerClient)
         {
-            State = (int)BossState.Sink;
-            Phase++;
+            Time = 0;
+            MiscTime = 0;
 
-            Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.UnitY * 4, 5f, 200, 2, uniqueID: "HushQuake"));
-            return;
+            if (CheckPhaseChangeNeeded())
+            {
+                State = (int)BossState.Sink;
+                Phase++;
+
+                Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.UnitY * 4, 5f, 200, 2, uniqueID: "HushQuake"));
+                return;
+            }
+
+            if (CheckForTarget())
+                State = (int)AttackPool.PickFromTop(4, 0.25);
+            else
+                State = (int)BossState.Despawning;
+
+            NPC.netUpdate = true;
         }
-
-        if (CheckForTarget())
-            State = (int)AttackPool.PickFromTop(4, 0.25);
-        else
-            State = (int)BossState.Despawning;
-
     }
 
     private bool CheckPhaseChangeNeeded()

@@ -44,6 +44,7 @@ public sealed class GlowingEyeTear : ModProjectile
             0 => new Color(106, 152, 198),
             1 => new Color(200, 173, 107),
             2 => new Color(156, 180, 111),
+            3 => new Color(130, 127, 140),
             _ => Color.Black
         };
     }
@@ -64,8 +65,6 @@ public sealed class GlowingEyeTear : ModProjectile
             TearColor = GetColorFromType((int)TearColorType);
         }
 
-        Projectile.velocity = Projectile.velocity.RotatedBy(Curvature);
-
         if (Projectile.timeLeft < 20)
         {
             Projectile.velocity *= 0.99f;
@@ -77,6 +76,7 @@ public sealed class GlowingEyeTear : ModProjectile
             case (int)Behavior.Forward:
 
                 Curvature *= 0.998f;
+                Projectile.velocity = Projectile.velocity.RotatedBy(Curvature);
 
                 break;
 
@@ -86,6 +86,7 @@ public sealed class GlowingEyeTear : ModProjectile
                     Projectile.velocity *= 0.995f;
 
                 Curvature *= 0.998f;
+                Projectile.velocity = Projectile.velocity.RotatedBy(Curvature);
 
                 break;
 
@@ -95,6 +96,8 @@ public sealed class GlowingEyeTear : ModProjectile
                     Projectile.velocity *= 1.0012f;
                 else
                     Curvature *= 0.998f;
+
+                Projectile.velocity = Projectile.velocity.RotatedBy(Curvature);
 
                 break;
 
@@ -106,7 +109,9 @@ public sealed class GlowingEyeTear : ModProjectile
                     Projectile.velocity *= 0.97f;
 
                 if (Projectile.velocity.Length() < 0.7f)
-                    Projectile.velocity *= 8f;
+                    Projectile.velocity *= 12f;
+
+                Projectile.velocity = Projectile.velocity.RotatedBy(Curvature * MathF.Sin(Time * 0.1f));
 
                 break;
         }

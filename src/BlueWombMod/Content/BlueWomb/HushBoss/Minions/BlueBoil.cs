@@ -5,6 +5,7 @@ using BlueWombMod.Content.Particles;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Reflection.Metadata;
 using Terraria;
 using Terraria.Audio;
 using Terraria.DataStructures;
@@ -12,6 +13,7 @@ using Terraria.GameContent;
 using Terraria.GameContent.Bestiary;
 using Terraria.ID;
 using Terraria.ModLoader;
+using static Terraria.GameContent.Animations.Actions.NPCs;
 
 namespace BlueWombMod.Content.BlueWomb.HushBoss.Minions;
 
@@ -19,17 +21,16 @@ public sealed class BlueBoil : ModNPC
 {
     public override void SetDefaults()
     {
-        NPC.width = 32;
-        NPC.height = 32;
+        NPC.width = 44;
+        NPC.height = 44;
 
-        NPC.lifeMax = 100;
+        NPC.lifeMax = 150;
         NPC.defense = 15;
         NPC.noGravity = true;
         NPC.knockBackResist = 0.5f;
 
-        NPC.HitSound = SoundID.NPCHit1;
-        NPC.DeathSound = SoundID.NPCDeath11;
-        NPC.behindTiles = true;
+        NPC.HitSound = SoundID.NPCHit13;
+        NPC.DeathSound = SoundID.NPCDeath21;
 
         SpawnModBiomes = [ModContent.GetInstance<BlueWombBiome>().Type];
     }
@@ -43,6 +44,8 @@ public sealed class BlueBoil : ModNPC
     public ref float Time => ref NPC.ai[1];
     public ref float SpawnTime => ref NPC.ai[2];
 
+    public ref float Variant => ref NPC.localAI[0];
+
     public override void OnSpawn(IEntitySource source)
     {
         NPC.scale *= Main.rand.NextFloat(0.9f, 1.25f);
@@ -50,71 +53,144 @@ public sealed class BlueBoil : ModNPC
         NPC.life = NPC.lifeMax;
     }
 
+    private int CountAir(int x, int y, out Vector2 direction)
+    {
+        int count = 0;
+        direction = Vector2.Zero;
+        if (WorldGen.SolidOrSlopedTile(x, y - 1))
+            count++;
+        else
+            direction.Y++;
+
+        if (WorldGen.SolidOrSlopedTile(x, y + 1))
+            count++;
+        else
+            direction.Y--;
+
+        if (WorldGen.SolidOrSlopedTile(x - 1, y))
+            count++;
+        else
+            direction.X++;
+
+        if (WorldGen.SolidOrSlopedTile(x + 1, y))
+            count++;
+        else
+            direction.X--;
+
+
+        return count;
+    }
+
     public override void AI()
     {
-        DrawScale = Vector2.One;
-
         if (NPC.HasBuff(BuffID.Frozen))
-        {
-            NPC.velocity *= 0.2f;
             return;
-        }
 
-        float aimOffset = 0f;
-        if (NPC.HasBuff(BuffID.Confused))
-        {
-            aimOffset = 2f;
-        }
+        DrawScale = Vector2.One;
 
         if (SpawnTime < 20)
         {
+            NPC.dontTakeDamage = true;
+
+            if (SpawnTime == 0)
+            {
+                Vector2 newPosition = Vector2.Zero;
+                Vector2 newAngle = Vector2.Zero;
+                int surfaces = 0;
+
+                for (int j = -10; j < 10; j++)
+                {
+                    for (int i = -10; i < 10; i++)
+                    {
+                        Point tilePos = NPC.Center.ToTileCoordinates() + new Point(i, j);
+
+                        if (WorldGen.SolidOrSlopedTile(tilePos.X, tilePos.Y) && CountAir(tilePos.X, tilePos.Y, out Vector2 airDirection) < 4)
+                        {
+                            var addPos = tilePos.ToWorldCoordinates();
+
+                            if (surfaces == 0)
+                            {
+                                newPosition = addPos;
+                                newAngle = airDirection;
+                                surfaces++;
+                            }
+                            else
+                            {
+                                var addRot = airDirection;
+
+                                newPosition += addPos;
+                                newAngle += addRot;
+                                surfaces++;
+                            }
+                        }
+                    }
+                }
+
+                if (surfaces > 0)
+                {
+                    float angle = (newAngle / surfaces).ToRotation();
+                    Vector2 center = newPosition / surfaces;
+
+                    NPC.rotation = angle - MathHelper.PiOver2;
+                    NPC.Center = center - (newAngle / surfaces) * (10 + 10 * Math.Abs(MathF.Cos(angle * 2)));
+                }
+            }
+
             SpawnTime++;
             NPC.velocity *= 0.9f;
         }
         else
         {
-            NPC.velocity *= 0.7f;
-
-            if (Time % 4 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
-            {
-                NPC.velocity += Main.rand.NextVector2Circular(1, 1) * Main.rand.NextFloat();
-                NPC.netUpdate = true;
-            }
+            NPC.dontTakeDamage = false;
 
             NPC.TargetClosest();
 
             NPCAimedTarget target = NPC.GetTargetData();
 
-            const int WaitTime = 135;
-            const int SpitTime = 33;
+            const int WaitTime = 115;
+            const int SpitTime = 43;
 
-            if (ShootTime > WaitTime || (!target.Invalid && NPC.Distance(target.Center) < 800))
+            if (NPC.life < NPC.lifeMax)
             {
-                if (ShootTime == (WaitTime + SpitTime / 2))
+                if (Time % 8 == 0)
+                    NPC.life++;
+            }
+            else
+            {
+                if (ShootTime > WaitTime || (!target.Invalid && NPC.Distance(target.Center) < 500))
                 {
-                    SoundEngine.PlaySound(SoundID.Item111 with { MaxInstances = 0, Pitch = 0.5f, PitchVariance = 0.1f }, NPC.Center);
-
-                    if (!target.Invalid && Main.netMode != NetmodeID.MultiplayerClient)
+                    if (ShootTime == (WaitTime + SpitTime / 2))
                     {
-                        Vector2 shotVel = NPC.DirectionTo(target.Center).SafeNormalize(Vector2.Zero).RotatedByRandom(0.05f) * Main.rand.NextFloat(4f, 6f);
-                        Projectile blood = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, shotVel, ModContent.ProjectileType<BloodTear>(), 40, 0f);
-                        blood.ai[0] = 0;
-                        blood.scale *= 0.9f;
+                        SoundEngine.PlaySound(SoundID.Item112 with { MaxInstances = 0, Pitch = 0.2f, PitchVariance = 0.1f }, NPC.Center);
+
+                        if (!target.Invalid && Main.netMode != NetmodeID.MultiplayerClient)
+                        {
+                            for (int i = 0; i < Main.rand.Next(1, 4); i++)
+                            {
+                                Vector2 shotVel = (NPC.rotation - MathHelper.PiOver2).ToRotationVector2().RotatedByRandom(0.2f) * Main.rand.NextFloat(6f, 8f);
+                                Projectile blood = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center, shotVel, ModContent.ProjectileType<BloodTear>(), 40, 0f);
+                                blood.ai[1] = (int)BloodTear.Behavior.Fall;
+                                blood.ai[2] = 1f;
+                                blood.scale *= Main.rand.NextFloat(0.9f, 1f);
+                            }
+                        }
                     }
-                }
 
-                Vector2 squashIn = Vector2.Lerp(Vector2.One, new Vector2(1.5f, 0.5f), Utils.GetLerpValue(WaitTime + SpitTime / 5f, WaitTime + SpitTime / 3f, ShootTime, true));
-                Vector2 squashOut = Vector2.Lerp(Vector2.One, new Vector2(0.6f, 1.5f), MathF.Sqrt(Utils.GetLerpValue(SpitTime / 1.1f, SpitTime / 2f, ShootTime - WaitTime, true)));
-                DrawScale = Vector2.Lerp(squashIn, squashOut, Utils.GetLerpValue(SpitTime / 2.5f, SpitTime / 2f, ShootTime - WaitTime, true));
+                    Vector2 squashIn = Vector2.Lerp(Vector2.One, new Vector2(1.3f, 0.7f), Utils.GetLerpValue(WaitTime + SpitTime / 5f, WaitTime + SpitTime / 3f, ShootTime, true));
+                    Vector2 squashOut = Vector2.Lerp(Vector2.One, new Vector2(0.8f, 1.2f), MathF.Sqrt(Utils.GetLerpValue(SpitTime / 1.1f, SpitTime / 2f, ShootTime - WaitTime, true)));
+                    DrawScale = Vector2.Lerp(squashIn, squashOut, Utils.GetLerpValue(SpitTime / 2.5f, SpitTime / 2f, ShootTime - WaitTime, true));
 
-                ShootTime++;
+                    ShootTime++;
 
-                if (ShootTime >= WaitTime + SpitTime)
-                {
-                    ShootTime = 0;
+                    if (ShootTime >= WaitTime + SpitTime)
+                        ShootTime = 0;
                 }
             }
         }
+
+        Time++;
+
+        NPC.velocity = Vector2.Zero;
 
         NPC.FaceTarget();
     }
@@ -124,15 +200,9 @@ public sealed class BlueBoil : ModNPC
         var flyParticle = LittleAngryBugParticle.RequestNew(NPC.Center, Vector2.Zero, Main.rand.Next(30, 60), Main.rand.NextFloat(0.5f, 1.5f));
         ParticleEngine.Particles.Add(flyParticle);
 
-        for (int i = 0; i < Main.rand.Next(5, 10); i++)
+        for (int i = 0; i < Main.rand.Next(15, 20); i++)
         {
             Dust dust = Dust.NewDustPerfect(NPC.Center, DustID.Blood, Main.rand.NextVector2Circular(5, 5), Scale: 1.5f);
-            dust.noGravity = true;
-        }
-
-        for (int i = 0; i < Main.rand.Next(8, 15); i++)
-        {
-            Dust dust = Dust.NewDustPerfect(NPC.Center, DustID.FireflyHit, Main.rand.NextVector2Circular(5, 5), Scale: 2f * NPC.scale);
             dust.noGravity = true;
         }
     }
@@ -152,27 +222,8 @@ public sealed class BlueBoil : ModNPC
         boundingBox = NPC.Hitbox;
     }
 
-    public ref float AnimationFrame => ref NPC.localAI[0];
-
     public override void FindFrame(int frameHeight)
     {
-        if (NPC.HasBuff(BuffID.Frozen))
-        {
-            return;
-        }
-
-        NPC.frameCounter++;
-
-        if (NPC.frameCounter > 4)
-        {
-            NPC.frameCounter = 0;
-
-            AnimationFrame++;
-            if (AnimationFrame >= 4)
-            {
-                AnimationFrame = 0;
-            }
-        }
     }
 
     private Vector2 drawScale;
@@ -182,17 +233,33 @@ public sealed class BlueBoil : ModNPC
     {
         Texture2D texture = TextureAssets.Npc[Type].Value;
 
-        Rectangle frame = texture.Frame(1, 4, 0, (int)AnimationFrame);
+        float spawnScale = Utils.GetLerpValue(0, 8, SpawnTime, true);
 
-        float scale = NPC.scale * Utils.GetLerpValue(-5, 15, SpawnTime, true);
+        float scale = 0.5f + NPC.GetLifePercent() * 0.5f * MathF.Sqrt(Utils.GetLerpValue(0, 18, SpawnTime, true));
+
+        int growthFrame = scale < 0.7f || SpawnTime < 10 ? 1 : 0;
+
+        if (growthFrame > 0)
+            scale *= 1.5f;
+
         if (NPC.IsABestiaryIconDummy)
         {
-            DrawScale = Vector2.One;
+            growthFrame = 0;
             scale = 1f;
+            spawnScale = 1f;
+
+            drawColor = Color.White;
+            DrawScale = Vector2.One;
         }
 
-        SpriteEffects flip = NPC.direction < 0 ? SpriteEffects.FlipHorizontally : 0;
-        spriteBatch.Draw(texture, NPC.Center - screenPos, frame, drawColor * 1.2f, NPC.rotation, frame.Size() / 2f, DrawScale * scale, flip, 0);
+        Rectangle frame = texture.Frame(3, 3, (int)Variant, 1 + growthFrame);
+        Rectangle baseFrame = texture.Frame(3, 3, (int)Variant, 0);
+
+        Vector2 origin = baseFrame.Size() * new Vector2(0.5f, 0.8f);
+        Vector2 center = NPC.Center + new Vector2(0, 18).RotatedBy(NPC.rotation);
+
+        spriteBatch.Draw(texture, center - screenPos, frame, drawColor * 1.1f, NPC.rotation, origin, DrawScale * scale * spawnScale * NPC.scale, 0, 0);
+        spriteBatch.Draw(texture, center - screenPos, baseFrame, drawColor * 1.1f, NPC.rotation, origin, Vector2.Lerp(DrawScale, Vector2.One, 0.67f) * spawnScale * NPC.scale, 0, 0);
 
         return false;
     }
