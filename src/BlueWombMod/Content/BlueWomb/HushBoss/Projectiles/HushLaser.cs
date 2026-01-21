@@ -19,7 +19,10 @@ public sealed class HushLaser : ModProjectile
 
     public override void SetDefaults()
     {
-        
+        Projectile.width = 48;
+        Projectile.height = 48;
+
+        Projectile.damage = 60;
     }
 
     public ref float HostIndex => ref Projectile.ai[0];
@@ -41,6 +44,8 @@ public sealed class HushLaser : ModProjectile
 
     public ref float Time => ref Projectile.ai[1];
 
+    public ref float State => ref Projectile.ai[2];
+
     public override void OnSpawn(IEntitySource source)
     {
         HostIndex = -1;
@@ -57,7 +62,7 @@ public sealed class HushLaser : ModProjectile
 
         if (!target.Invalid)
         {
-
+            Projectile.velocity = Vector2.Lerp(Projectile.velocity, Projectile.DirectionTo(target.Center), 0.02f).SafeNormalize(Vector2.Zero) * 8f;
         }
     }
 

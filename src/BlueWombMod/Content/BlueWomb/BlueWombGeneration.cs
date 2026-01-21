@@ -136,5 +136,6 @@ public sealed class BlueWombGenBiome : MicroBiome
         }
 
         HushSystem.WombPosition = description.Center;
+        HushSystem.WombInWorld = true;
     }
 }

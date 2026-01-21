@@ -55,12 +55,12 @@ public sealed class BlueWombDarknessSystem : ModSystem
         if (!HushSystem.WombInWorld)
             return;
 
-        if (!WorldGen.SolidOrSlopedTile(x, y))
+        if (!WorldGen.SolidOrSlopedTile(x, y) && Main.tile[x, y].WallType == ModContent.WallType<DeadTissueWallUnsafe>())
         {
             float i = x - HushSystem.WombPosition.X;
             float j = y - HushSystem.WombPosition.Y;
             float distance = Utils.GetLerpValue(HushSystem.WOMB_RADIUS, 0, MathF.Sqrt(i * i + j * j), true);
-            outputColor += Vector3.One * distance * MathF.Sqrt(lightFade);
+            outputColor += Vector3.One * (distance * 0.9f * MathF.Sqrt(lightFade) + 0.1f);
         }
     }
 
@@ -75,7 +75,7 @@ public sealed class BlueWombDarknessSystem : ModSystem
 
         lightFade = Math.Clamp(lightFade, 0f, 1f);
 
-        if (lightFade > 0f)
+        if (lightFade > 0f && Main.LocalPlayer.ZoneBlueWomb)
         {
             Main.GraveyardVisualIntensity = Math.Max(0.2f * lightFade, Main.GraveyardVisualIntensity);
             scale *= 1f - lightFade * 0.133f * (1f + MathF.Sin(Main.GlobalTimeWrappedHourly) * 0.2f);
@@ -84,7 +84,7 @@ public sealed class BlueWombDarknessSystem : ModSystem
 
     public override void ModifySunLightColor(ref Color tileColor, ref Color backgroundColor)
     {
-        if (lightFade > 0f)
+        if (lightFade > 0f && Main.LocalPlayer.ZoneBlueWomb)
         {
             tileColor = tileColor.MultiplyRGBA(Color.Lerp(Color.White, new Color(30, 33, 40), lightFade * 0.5f));
             backgroundColor = backgroundColor.MultiplyRGBA(Color.Lerp(Color.White, new Color(30, 33, 40), lightFade));
