@@ -60,7 +60,7 @@ public sealed class BlueWombDarknessSystem : ModSystem
             float i = x - HushSystem.WombPosition.X;
             float j = y - HushSystem.WombPosition.Y;
             float distance = Utils.GetLerpValue(HushSystem.WOMB_RADIUS, 0, MathF.Sqrt(i * i + j * j), true);
-            outputColor += Vector3.One * (distance * 0.9f * MathF.Sqrt(lightFade) + 0.1f);
+            outputColor += Vector3.One * distance * 0.9f * MathF.Sqrt(lightFade);
         }
     }
 
@@ -78,7 +78,7 @@ public sealed class BlueWombDarknessSystem : ModSystem
         if (lightFade > 0f && Main.LocalPlayer.ZoneBlueWomb)
         {
             Main.GraveyardVisualIntensity = Math.Max(0.2f * lightFade, Main.GraveyardVisualIntensity);
-            scale *= 1f - lightFade * 0.133f * (1f + MathF.Sin(Main.GlobalTimeWrappedHourly) * 0.2f);
+            scale *= 1f - lightFade * 0.17f * (1f + MathF.Sin(Main.GlobalTimeWrappedHourly) * 0.2f);
         }
     }
 

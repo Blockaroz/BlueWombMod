@@ -97,7 +97,7 @@ public sealed partial class Hush : ModNPC
                         State = (int)BossState.GaperTunnel;
                         break;
                     case 4:
-                        State = (int)BossState.MouthSalvos;
+                        State = (int)BossState.TheLasers;
                         break;
                 }
             }
@@ -824,12 +824,18 @@ public sealed partial class Hush : ModNPC
             {
                 NPC.velocity = NPC.DirectionTo(HomePosition).SafeNormalize(Vector2.Zero) * 1.833f;
 
+                var target = NPC.GetTargetData();
+                if (!target.Invalid)
+                    TargetPosition = target.Center;
+
                 if (MiscTime % 10 == 0)
                     Main.instance.CameraModifiers.Add(new ContinuousShakeModifier(NPC.Center, Vector2.Zero, 3f, 15, 2, "Hush"));
 
                 if (MiscTime % 30 == 0 && Main.netMode != NetmodeID.MultiplayerClient)
                 {
-                    Vector2 spawnPosition = HushSystem.WombPosition.ToWorldCoordinates() + new Vector2(0, HushSystem.WOMB_RADIUS * 12).RotatedBy(Main.rand.NextFloat(-4f, 4f));
+                    Vector2 wombCenter = HushSystem.WombPosition.ToWorldCoordinates();
+                    float angle = wombCenter.AngleTo(target.Center) - MathHelper.PiOver2 + Main.rand.NextFloat(-0.3f, 0.3f);
+                    Vector2 spawnPosition = wombCenter + new Vector2(0, HushSystem.WOMB_RADIUS * 13).RotatedBy(angle);
                     NPC.NewNPCDirect(NPC.GetSource_FromThis(), spawnPosition, ModContent.NPCType<BlueBoil>());
                 }
             }
@@ -863,8 +869,8 @@ public sealed partial class Hush : ModNPC
         var target = NPC.GetTargetData();
         NPC.FaceTarget();
 
-        Vector2 center = HushSystem.WombPosition.ToWorldCoordinates();
-        TargetPosition = Vector2.Lerp(target.Center, center, Utils.GetLerpValue(300, 400, NPC.Distance(center), true));
+        Vector2 wombcenter = HushSystem.WombPosition.ToWorldCoordinates();
+        TargetPosition = Vector2.Lerp(target.Center, wombcenter, Utils.GetLerpValue(300, 400, NPC.Distance(wombcenter), true));
 
         if (Time < TotalTime)
         {
@@ -885,11 +891,9 @@ public sealed partial class Hush : ModNPC
             {
                 NPC.netUpdate = true;
 
-                if (Main.netMode != NetmodeID.MultiplayerClient)
-                {
-                    Vector2 spawnPosition = HushSystem.WombPosition.ToWorldCoordinates() + new Vector2(0, HushSystem.WOMB_RADIUS * 12).RotatedBy(Main.rand.NextFloat(-4f, 4f));
-                    NPC.NewNPCDirect(NPC.GetSource_FromThis(), spawnPosition, ModContent.NPCType<BlueBoil>());
-                }
+                float angle = wombcenter.AngleTo(target.Center) - MathHelper.PiOver2 + Main.rand.NextFloat(-0.3f, 0.3f);
+                Vector2 spawnPosition = wombcenter + new Vector2(0, HushSystem.WOMB_RADIUS * 12).RotatedBy(angle);
+                NPC.NewNPCDirect(NPC.GetSource_FromThis(), spawnPosition, ModContent.NPCType<BlueBoil>());
 
                 GlowTearType++;
                 var colorType = GlowTearType;
@@ -908,9 +912,9 @@ public sealed partial class Hush : ModNPC
                 for (int i = 0; i < count; i++)
                 {
                     Vector2 direction = new Vector2(0, 2f).RotatedBy(Time * 0.03f * NPC.direction + (float)i / count * MathHelper.TwoPi);
-                    Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), eyePosition, direction, ModContent.ProjectileType<GlowingEyeTear>(), damage, 0f);
-                    glowTear.ai[0] = aiType;
-                    glowTear.localAI[0] = colorType;
+                    //Projectile glowTear = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), eyePosition, direction, ModContent.ProjectileType<GlowingEyeTear>(), damage, 0f);
+                   // glowTear.ai[0] = aiType;
+                    //glowTear.localAI[0] = colorType;
                 }
             }
         }
@@ -1139,7 +1143,15 @@ public sealed partial class Hush : ModNPC
 
             if (Time == ChargeTime + 10 && Main.netMode != NetmodeID.MultiplayerClient)
             {
+                var leftLaser = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center + new Vector2(50, -100), Vector2.Zero, ModContent.ProjectileType<HushLaser>(), 80, 1f);
+                leftLaser.ai[0] = NPC.whoAmI;
+                leftLaser.ai[1] = -1;
+                leftLaser.timeLeft = LaseringTime + 50;
 
+                var rightLaser = Projectile.NewProjectileDirect(NPC.GetSource_FromThis(), NPC.Center + new Vector2(-50, -100), Vector2.Zero, ModContent.ProjectileType<HushLaser>(), 80, 1f);
+                rightLaser.ai[0] = NPC.whoAmI;
+                rightLaser.ai[1] = 1;
+                rightLaser.timeLeft = LaseringTime + 50;
             }
         }
         else
@@ -1153,6 +1165,10 @@ public sealed partial class Hush : ModNPC
             Renderer.Face.Offset += new Vector2(0, -20 + 60 * MathF.Sin(normalizeTime * MathHelper.Pi)) * normalizeTime;
             Renderer.Mouth.Scale *= new Vector2(1f + normalizeTime * 0.15f, 1f - normalizeTime * 0.8f);
         }
+
+        var target = NPC.GetTargetData();
+        if (Time % 12 == 0 && !target.Invalid)
+            TargetPosition = target.Center;
 
         if (Time > TotalTime + 80)
         {

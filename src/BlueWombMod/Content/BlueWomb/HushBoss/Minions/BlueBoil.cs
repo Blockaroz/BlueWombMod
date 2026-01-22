@@ -27,6 +27,7 @@ public sealed class BlueBoil : ModNPC
         NPC.lifeMax = 150;
         NPC.defense = 15;
         NPC.noGravity = true;
+        NPC.noTileCollide = true;
         NPC.knockBackResist = 0.5f;
 
         NPC.HitSound = SoundID.NPCHit13;
@@ -57,22 +58,22 @@ public sealed class BlueBoil : ModNPC
     {
         int count = 0;
         direction = Vector2.Zero;
-        if (WorldGen.SolidOrSlopedTile(x, y - 1))
+        if (WorldGen.SolidTile(x, y - 1))
             count++;
         else
             direction.Y++;
 
-        if (WorldGen.SolidOrSlopedTile(x, y + 1))
+        if (WorldGen.SolidTile(x, y + 1))
             count++;
         else
             direction.Y--;
 
-        if (WorldGen.SolidOrSlopedTile(x - 1, y))
+        if (WorldGen.SolidTile(x - 1, y))
             count++;
         else
             direction.X++;
 
-        if (WorldGen.SolidOrSlopedTile(x + 1, y))
+        if (WorldGen.SolidTile(x + 1, y))
             count++;
         else
             direction.X--;
@@ -104,7 +105,7 @@ public sealed class BlueBoil : ModNPC
                     {
                         Point tilePos = NPC.Center.ToTileCoordinates() + new Point(i, j);
 
-                        if (WorldGen.SolidOrSlopedTile(tilePos.X, tilePos.Y) && CountAir(tilePos.X, tilePos.Y, out Vector2 airDirection) < 4)
+                        if (WorldGen.SolidTile(tilePos.X, tilePos.Y) && CountAir(tilePos.X, tilePos.Y, out Vector2 airDirection) < 4)
                         {
                             var addPos = tilePos.ToWorldCoordinates();
 
@@ -128,11 +129,11 @@ public sealed class BlueBoil : ModNPC
 
                 if (surfaces > 0)
                 {
-                    float angle = (newAngle / surfaces).ToRotation();
+                    float angle = MathHelper.WrapAngle((newAngle / surfaces).ToRotation());
                     Vector2 center = newPosition / surfaces;
 
                     NPC.rotation = angle - MathHelper.PiOver2;
-                    NPC.Center = center - (newAngle / surfaces);
+                    NPC.Center = center - (newAngle / surfaces) * 12f;
                 }
             }
 
@@ -190,6 +191,7 @@ public sealed class BlueBoil : ModNPC
 
         Time++;
 
+        Lighting.AddLight(NPC.Center, Color.GhostWhite.ToVector3() * 0.3f);
         NPC.velocity = Vector2.Zero;
 
         NPC.FaceTarget();
